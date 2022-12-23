@@ -6,7 +6,7 @@ from enum import Enum
 from dataclasses import dataclass
 
 
-logger = logging.getLogger("mmsim")
+logger = logging.getLogger("demand")
 
 
 class Location:
