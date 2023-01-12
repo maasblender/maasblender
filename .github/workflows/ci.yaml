@@ -27,6 +27,6 @@ jobs:
       - name: Build and push
         uses: docker/build-push-action@v3
         with:
-          context: ./src/test
+          context: ./src/simulation_broker
           push: true
-          tags: maasblender/test:test
+          tags: ghcr.io/maasblender/core/simulation_broker:test
