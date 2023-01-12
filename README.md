@@ -1,4 +1,7 @@
 # MaaS Blender 
+[![ci workflow](https://github.com/maasblender/core/actions/workflows/ci.yaml/badge.svg)](https://github.com/maasblender/core/actions/workflows/ci.yaml "CI status")
+[![license](https://img.shields.io/github/license/maasblender/core)](LICENSE)
+
 Core components of MaaS Blender
 
 
