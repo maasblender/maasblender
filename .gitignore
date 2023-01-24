@@ -131,3 +131,4 @@ dmypy.json
 # Developer setting
 .devcontainer/devcontainer.json
 .secrets
+.vscode/settings.json
