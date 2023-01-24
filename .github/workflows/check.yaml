@@ -14,15 +14,16 @@ jobs:
   set-matrix:
     runs-on: ubuntu-latest
     outputs:
-      subdirs: ${{ steps.set-subdir.outputs.value }}
+      subdirs: ${{ steps.set-subdir.outputs.target-list }}
     steps:
       - name: Checkout
         uses: actions/checkout@v3
       - name: Get src subdirectories
         id: set-subdir
         run: |
-          list=`ls -1F src | jq -R -s -c 'split("\n")[:-1]'`
-          echo "::set-output name=value::$(echo $list | jq -c .)"
+          list=`ls -1F src | jq -R -s -c 'split("\n")[:-1]' | jq -c .`
+          echo $list
+          echo "target-list=$list" >> $GITHUB_OUTPUT
   check-license:
     runs-on: ubuntu-latest
     strategy:
