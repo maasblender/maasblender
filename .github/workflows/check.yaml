@@ -44,7 +44,6 @@ jobs:
       - name: Install and run pip-licenses          
         working-directory: src/${{ matrix.target }}
         run: |
-          echo "${{ matrix.target }}"
           pip install -r requirements.txt
           pip install -U pip-licenses 
           pip-licenses --allow-only="${{ env.license }}"
