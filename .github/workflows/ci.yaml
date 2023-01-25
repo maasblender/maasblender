@@ -9,8 +9,24 @@ on:
   workflow_dispatch:
 
 jobs:
+  set-matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      subdirs: ${{ steps.set-subdir.outputs.target-list }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Get src subdirectories
+        id: set-subdir
+        run: |
+          list=`find ./src -name requirements.txt | sed -r "s/^.*src\/(.*)\/requirements.txt/\1/g" | jq -R -s -c 'split("\n")[:-1]' | jq -c .`
+          echo "target-list=$list" >> $GITHUB_OUTPUT
   ci:
     runs-on: ubuntu-latest
+    needs: set-matrix
+    strategy:
+      matrix:
+        target: ${{ fromJson(needs.set-matrix.outputs.subdirs) }}
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -25,10 +41,9 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       
-
       - name: Build and push
         uses: docker/build-push-action@v3
         with:
-          context: ./src/simulation_broker
+          context: ./src/${{ matrix.target }}
           push: true
-          tags: ghcr.io/maasblender/core/simulation_broker:latest
+          tags: ghcr.io/maasblender/core/${{ matrix.target }}:latest
