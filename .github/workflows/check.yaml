@@ -21,7 +21,7 @@ jobs:
       - name: Get src subdirectories
         id: set-subdir
         run: |
-          list=`ls -1F src | jq -R -s -c 'split("\n")[:-1]' | jq -c .`
+          list=`find ./src -name requirements.txt | sed -r "s/^(.*)requirements.txt/\1/g" | jq -R -s -c 'split("\n")[:-1]' | jq -c .`
           echo "target-list=$list" >> $GITHUB_OUTPUT
   check-license:
     runs-on: ubuntu-latest
@@ -42,7 +42,7 @@ jobs:
           LICENSE_LIST=`cat allowed-license.lst | awk '{if($0 ~ /^[a-zA-Z].*/)print;}' | tr '\n' ';'`
           echo "license=$LICENSE_LIST" >> $GITHUB_ENV
       - name: Install and run pip-licenses          
-        working-directory: src/${{ matrix.target }}
+        working-directory: ${{ matrix.target }}
         run: |
           pip install -r requirements.txt
           pip install -U pip-licenses 
