@@ -1,4 +1,4 @@
-name: base flow of building an image
+name: Image Build
 
 on:
   push:
