@@ -86,3 +86,17 @@ class BrokerSettingDetails(BaseModel):
 class BrokerSetting(BaseModel):
     type: typing.Literal["broker"]
     details: BrokerSettingDetails
+
+
+SettingType = typing.Union[
+    BrokerSetting,
+    WalkingSimulatorSetting,
+    CommuterScenarioSetting,
+    HistoricalScenarioSetting,
+    DemandGeneratorSetting,
+    EvaluateSetting,
+    PlannerSetting,
+    ExternalSetting
+]
+
+SettingMapType = typing.Mapping[str, SettingType]

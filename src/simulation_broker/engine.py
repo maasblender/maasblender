@@ -82,7 +82,7 @@ class RunnerEngine:
                 "time": now,
                 "source": runner.name
             }
-            self._logger.info(json.dumps(event))
+            self._logger.info(json.dumps(event, ensure_ascii=False))
 
             # sync triggered events with the other runners
             if service := event.get("service"):

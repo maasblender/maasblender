@@ -45,48 +45,47 @@ async def exception_callback(_: Request, exc: Exception):
     logger.error(f"Unexpected Error {exc.args} \n {traceback.format_exc()}")
 
 
+def aggregate_by_type(settings: jschema.query.SettingMapType):
+    groups: dict[str, list[tuple[str, jschema.query.SettingType]]] = {}
+    for name, setting in settings.items():
+        groups.setdefault(setting.type, []).append((name, setting))
+    return groups
+
+
 @app.post("/setup", response_model=jschema.response.Message)
-async def setup(settings: typing.Mapping[str, typing.Union[
-    jschema.query.BrokerSetting,
-    jschema.query.WalkingSimulatorSetting,
-    jschema.query.CommuterScenarioSetting,
-    jschema.query.HistoricalScenarioSetting,
-    jschema.query.DemandGeneratorSetting,
-    jschema.query.EvaluateSetting,
-    jschema.query.PlannerSetting,
-    jschema.query.ExternalSetting
-]]):
+async def setup(settings: jschema.query.SettingMapType):
     global engine
-    global planner
-    global broker_setting
     engine = Engine(event_logger=logging.getLogger("events"))
 
-    for service, setting in settings.items():
-        simulator: Runner
-        if setting.type == "broker":
-            broker_setting = setting
-            continue
-        elif setting.type == "walking":
-            simulator = PersonalSimulator(name=service)
-        elif setting.type == "commuter":
-            simulator = CommuterScenario(name=service)
-        elif setting.type == "historical":
-            simulator = HistoricalScenario(name=service)
-        elif setting.type == "generator":
-            simulator = DemandGenerator(name=service)
-        elif setting.type == "evaluate":
-            simulator = UsabilityEvaluator(name=service)
-        elif setting.type == "http":
-            simulator = HttpRunner(name=service, endpoint=setting.endpoint)
-        elif setting.type == "planner":
-            planner = Planner(name=service, endpoint=setting.endpoint)
-            await planner.setup(setting.details)
-            continue
-        else:
-            raise NotImplementedError(f"{setting.type} is not implemented.")
+    setting_group = aggregate_by_type(settings)
 
-        await simulator.setup(setting.details)
-        engine.setup_runners({service: simulator})
+    global broker_setting
+    for name, setting in setting_group.pop("broker", []):
+        broker_setting = setting
+    global planner
+    for name, setting in setting_group.pop("planner", []):
+        planner = Planner(name=name, endpoint=setting.endpoint)
+        await planner.setup(setting.details)
+
+    async def setup_simulator(name_: str, setting_: jschema.query.SettingType, simulator: Runner):
+        await simulator.setup(setting_.details)
+        engine.setup_runners({name_: simulator})
+
+    for name, setting in setting_group.pop("commuter", []):
+        await setup_simulator(name, setting, CommuterScenario(name))
+    for name, setting in setting_group.pop("historical", []):
+        await setup_simulator(name, setting, HistoricalScenario(name))
+    for name, setting in setting_group.pop("generator", []):
+        await setup_simulator(name, setting, DemandGenerator(name))
+    for name, setting in setting_group.pop("walking", []):
+        await setup_simulator(name, setting, PersonalSimulator(name))
+    for name, setting in setting_group.pop("evaluate", []):
+        await setup_simulator(name, setting, UsabilityEvaluator(name))
+    for name, setting in setting_group.pop("http", []):
+        await setup_simulator(name, setting, HttpRunner(name, endpoint=setting.endpoint))
+
+    if setting_group:
+        NotImplementedError(f"{setting_group.keys()} is not implemented.")
 
     return {
         "message": "successfully configured."

@@ -82,4 +82,4 @@ class UsabilityEvaluator(Runner):
                     ) if plan.service != "walking" else True
                 } for plan in plans
             ]
-        }))
+        }, ensure_ascii=False))

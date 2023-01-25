@@ -1,11 +1,11 @@
 # SPDX-FileCopyrightText: 2022 TOYOTA MOTOR CORPORATION
 # SPDX-License-Identifier: Apache-2.0
-import typing
 import logging
+import typing
+
 import aiohttp
 
 from jschema.query import LocationSetting
-
 
 logger = logging.getLogger("planner")
 
@@ -27,16 +27,27 @@ class Trip(typing.NamedTuple):
 Path = typing.List[Trip]
 
 
+async def check_response(response: aiohttp.ClientResponse):
+    if not response.ok:
+        try:
+            content = await response.text()
+            logger.error("response: %s", content)
+        except:  # ignore error
+            logger.error("cannot read response")
+        response.raise_for_status()
+
+
 class Planner:
     def __init__(self, name: str, endpoint: str):
         self._endpoint = endpoint
-        self._session = aiohttp.ClientSession(raise_for_status=True)
+        self._session = aiohttp.ClientSession()
 
     async def _get(self, method: str, params: typing.Mapping = None):
         async with self._session.get(
                 self._endpoint + "/" + method,
                 params=params if params else {},
         ) as response:
+            await check_response(response)
             return await response.json()
 
     async def _post(self, method: str, data: typing.Mapping = None, params: typing.Mapping = None):
@@ -45,6 +56,7 @@ class Planner:
                 json=data if data else {},
                 params=params if params else {},
         ) as response:
+            await check_response(response)
             return await response.json()
 
     async def setup(self, setting: typing.Mapping):
