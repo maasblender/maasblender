@@ -1,0 +1,7 @@
+fastapi >= 0.73
+uvicorn >= 0.17
+geopy >= 2.2
+pydantic >= 1.9.0
+networkx >= 2.7.1
+aiohttp >= 3.8.1
+python-multipart >= 0.0.5
