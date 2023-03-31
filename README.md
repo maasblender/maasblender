@@ -1,7 +1,7 @@
 # MaaS Blender 
-[![ci workflow](https://github.com/maasblender/core/actions/workflows/ci.yaml/badge.svg)](https://github.com/maasblender/core/actions/workflows/ci.yaml "CI status")
-[![license check workflow](https://github.com/maasblender/core/actions/workflows/check.yaml/badge.svg)](https://github.com/maasblender/core/actions/workflows/check.yaml "License check")
-[![license](https://img.shields.io/github/license/maasblender/core)](LICENSE)
+[![ci workflow](https://github.com/maasblender/maasblender/actions/workflows/ci.yaml/badge.svg)](https://github.com/maasblender/maasblender/actions/workflows/ci.yaml "CI status")
+[![license check workflow](https://github.com/maasblender/maasblender/actions/workflows/check.yaml/badge.svg)](https://github.com/maasblender/maasblender/actions/workflows/check.yaml "License check")
+[![license](https://img.shields.io/github/license/maasblender/maasblender)](LICENSE)
 
 Core components of MaaS Blender
 
