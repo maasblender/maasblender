@@ -39,4 +39,4 @@ If you find bugs or want to add some features, please check out the [contributin
 
 Licensed under [Apache-2.0 License](LICENSE).
 
-Copyright (c) 2022 TOYOTA MOTOR CORPORATION.
+Copyright (c) 2022 TOYOTA MOTOR CORPORATION and MaaS Blender Contributors
