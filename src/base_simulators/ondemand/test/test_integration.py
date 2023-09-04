@@ -4,11 +4,16 @@ import unittest
 import logging
 from datetime import datetime, date, time, timedelta
 
+import os, sys 
+module_path = os.path.abspath(os.path.join(f'{os.path.dirname(__file__)}/..'))
+if module_path not in sys.path:
+    sys.path.append(module_path)
+
 from simulation import Simulation
 from core import EventType, Stop, StopTime, Service, Trip, Group, Network
 from jschema.query import Mobility
 
-logger = logging.getLogger('schedsim')
+logger = logging.getLogger(__name__)
 
 
 def run(simulation: Simulation, until: float):
@@ -92,10 +97,12 @@ class OneMobilityTestCase(unittest.TestCase):
                 'success': True,
                 'userId': 'User1',
                 'mobilityId': 'trip',
-                'org': {"locationId": "Stop1", "lat": ..., "lng": ...},
-                'dst': {"locationId": "Stop2", "lat": ..., "lng": ...},
-                'dept': 490.0,
-                'arrv': 540.0
+                'route':[{
+                    'org': {"locationId": "Stop1", "lat": ..., "lng": ...},
+                    'dst': {"locationId": "Stop2", "lat": ..., "lng": ...},
+                    'dept': 490.0,
+                    'arrv': 540.0
+                }]
             }
         }], triggered_events)
 
@@ -133,6 +140,22 @@ class OneMobilityTestCase(unittest.TestCase):
                 'mobilityId': 'trip',
                 'location': {"locationId": "Stop2", "lat": ..., "lng": ...},
             }
+        }, {
+            'eventType': EventType.DEPARTED,
+            'time': 1440.0 - 60,
+            'details': {
+                'userId': None,
+                'mobilityId': 'trip',
+                'location': {"locationId": "Stop2", "lat": ..., "lng": ...},
+            }
+        }, {
+            'eventType': EventType.ARRIVED,
+            'time': 1440.0 - 60 + 30,
+            'details': {
+                'userId': None,
+                'mobilityId': 'trip',
+                'location': {"locationId": "Stop1", "lat": ..., "lng": ...},
+            }
         }], triggered_events)
 
     def test_a_user_twice_lifetime(self):
@@ -152,10 +175,12 @@ class OneMobilityTestCase(unittest.TestCase):
                 'success': True,
                 'userId': 'User1',
                 'mobilityId': 'trip',
-                'org': {"locationId": "Stop1", "lat": ..., "lng": ...},
-                'dst': {"locationId": "Stop2", "lat": ..., "lng": ...},
-                'dept': 490.0,
-                'arrv': 540.0
+                'route':[{
+                    'org': {"locationId": "Stop1", "lat": ..., "lng": ...},
+                    'dst': {"locationId": "Stop2", "lat": ..., "lng": ...},
+                    'dept': 490.0,
+                    'arrv': 540.0
+                }]
             }
         }], triggered_events)
 
@@ -209,10 +234,12 @@ class OneMobilityTestCase(unittest.TestCase):
                 'success': True,
                 'userId': 'User1',
                 'mobilityId': 'trip',
-                'org': {"locationId": "Stop1", "lat": ..., "lng": ...},
-                'dst': {"locationId": "Stop2", "lat": ..., "lng": ...},
-                'dept': 580.0,
-                'arrv': 630.0
+                'route':[{
+                    'org': {"locationId": "Stop1", "lat": ..., "lng": ...},
+                    'dst': {"locationId": "Stop2", "lat": ..., "lng": ...},
+                    'dept': 580.0,
+                    'arrv': 630.0
+                }]
             }
         }, {
             'eventType': EventType.DEPARTED,
@@ -285,10 +312,12 @@ class OneMobilityTestCase(unittest.TestCase):
                 'success': True,
                 'userId': 'User1',
                 'mobilityId': 'trip',
-                'org': {"locationId": "Stop1", "lat": ..., "lng": ...},
-                'dst': {"locationId": "Stop2", "lat": ..., "lng": ...},
-                'dept': 490.0,
-                'arrv': 540.0
+                'route':[{
+                    'org': {"locationId": "Stop1", "lat": ..., "lng": ...},
+                    'dst': {"locationId": "Stop2", "lat": ..., "lng": ...},
+                    'dept': 490.0,
+                    'arrv': 540.0
+                }]
             }
         }], triggered_events)
 
@@ -306,10 +335,12 @@ class OneMobilityTestCase(unittest.TestCase):
                 'success': True,
                 'userId': 'User2',
                 'mobilityId': 'trip',
-                'org': {"locationId": "Stop1", "lat": ..., "lng": ...},
-                'dst': {"locationId": "Stop2", "lat": ..., "lng": ...},
-                'dept': 570.0,
-                'arrv': 620.0
+                'route':[{
+                    'org': {"locationId": "Stop1", "lat": ..., "lng": ...},
+                    'dst': {"locationId": "Stop2", "lat": ..., "lng": ...},
+                    'dept': 570.0,
+                    'arrv': 620.0
+                }]
             }
         }], triggered_events)
 
@@ -396,6 +427,22 @@ class OneMobilityTestCase(unittest.TestCase):
                 'mobilityId': 'trip',
                 'location': {"locationId": "Stop2", "lat": ..., "lng": ...},
             }
+        }, {
+            'eventType': EventType.DEPARTED,
+            'time': 1440.0 - 60,
+            'details': {
+                'userId': None,
+                'mobilityId': 'trip',
+                'location': {"locationId": "Stop2", "lat": ..., "lng": ...},
+            }
+        }, {
+            'eventType': EventType.ARRIVED,
+            'time': 1440.0 - 60 + 30,
+            'details': {
+                'userId': None,
+                'mobilityId': 'trip',
+                'location': {"locationId": "Stop1", "lat": ..., "lng": ...},
+            }
         }], triggered_events)
 
     def test_reserve_while_moving(self):
@@ -415,10 +462,12 @@ class OneMobilityTestCase(unittest.TestCase):
                 'success': True,
                 'userId': 'User1',
                 'mobilityId': 'trip',
-                'org': {"locationId": "Stop1", "lat": ..., "lng": ...},
-                'dst': {"locationId": "Stop2", "lat": ..., "lng": ...},
-                'dept': 490.0,
-                'arrv': 540.0
+                'route':[{
+                    'org': {"locationId": "Stop1", "lat": ..., "lng": ...},
+                    'dst': {"locationId": "Stop2", "lat": ..., "lng": ...},
+                    'dept': 490.0,
+                    'arrv': 540.0
+                }]
             }
         }], triggered_events)
 
@@ -457,10 +506,12 @@ class OneMobilityTestCase(unittest.TestCase):
                 'success': True,
                 'userId': 'User2',
                 'mobilityId': 'trip',
-                'org': {"locationId": "Stop2", "lat": ..., "lng": ...},
-                'dst': {"locationId": "Stop1", "lat": ..., "lng": ...},
-                'dept': 540.0,
-                'arrv': 590.0
+                'route':[{
+                    'org': {"locationId": "Stop2", "lat": ..., "lng": ...},
+                    'dst': {"locationId": "Stop1", "lat": ..., "lng": ...},
+                    'dept': 540.0,
+                    'arrv': 590.0
+                }]
             }
         }], triggered_events)
 
@@ -533,10 +584,12 @@ class OneMobilityTestCase(unittest.TestCase):
                 'success': True,
                 'userId': 'User1',
                 'mobilityId': 'trip',
-                'org': {"locationId": "Stop2", "lat": ..., "lng": ...},
-                'dst': {"locationId": "Stop3", "lat": ..., "lng": ...},
-                'dept': 580.0,
-                'arrv': 620.0
+                'route':[{
+                    'org': {"locationId": "Stop2", "lat": ..., "lng": ...},
+                    'dst': {"locationId": "Stop3", "lat": ..., "lng": ...},
+                    'dept': 580.0,
+                    'arrv': 620.0
+                }]
             }
         }, {
             'eventType': EventType.DEPARTED,
@@ -565,10 +618,12 @@ class OneMobilityTestCase(unittest.TestCase):
                 'success': True,
                 'userId': 'User2',
                 'mobilityId': 'trip',
-                'org': {"locationId": "Stop3", "lat": ..., "lng": ...},
-                'dst': {"locationId": "Stop2", "lat": ..., "lng": ...},
-                'dept': 530.0,
-                'arrv': 570.0
+                'route':[{
+                    'org': {"locationId": "Stop3", "lat": ..., "lng": ...},
+                    'dst': {"locationId": "Stop2", "lat": ..., "lng": ...},
+                    'dept': 530.0,
+                    'arrv': 570.0
+                }]
             }
         }], triggered_events)
 
@@ -670,6 +725,22 @@ class OneMobilityTestCase(unittest.TestCase):
                 'mobilityId': 'trip',
                 'location': {"locationId": "Stop3", "lat": ..., "lng": ...},
             }
+        }, {
+            'eventType': EventType.DEPARTED,
+            'time': 1440.0 - 60,
+            'details': {
+                'userId': None,
+                'mobilityId': 'trip',
+                'location': {"locationId": "Stop3", "lat": ..., "lng": ...},
+            }
+        }, {
+            'eventType': EventType.ARRIVED,
+            'time': 1440.0 - 60 + 15,
+            'details': {
+                'userId': None,
+                'mobilityId': 'trip',
+                'location': {"locationId": "Stop1", "lat": ..., "lng": ...},
+            }
         }], triggered_events)
 
     def test_reserve_after_boarding_while_on_boarding(self):
@@ -689,10 +760,12 @@ class OneMobilityTestCase(unittest.TestCase):
                 'success': True,
                 'userId': 'User1',
                 'mobilityId': 'trip',
-                'org': {"locationId": "Stop2", "lat": ..., "lng": ...},
-                'dst': {"locationId": "Stop3", "lat": ..., "lng": ...},
-                'dept': 510.0,
-                'arrv': 550.0
+                'route':[{
+                    'org': {"locationId": "Stop2", "lat": ..., "lng": ...},
+                    'dst': {"locationId": "Stop3", "lat": ..., "lng": ...},
+                    'dept': 510.0,
+                    'arrv': 550.0
+                }]
             }
         }, {
             'eventType': EventType.DEPARTED,
@@ -755,10 +828,12 @@ class OneMobilityTestCase(unittest.TestCase):
                 'success': True,
                 'userId': 'User3',
                 'mobilityId': 'trip',
-                'org': {"locationId": "Stop2", "lat": ..., "lng": ...},
-                'dst': {"locationId": "Stop3", "lat": ..., "lng": ...},
-                'dept': 519.0,
-                'arrv': 559.0
+                'route':[{
+                    'org': {"locationId": "Stop2", "lat": ..., "lng": ...},
+                    'dst': {"locationId": "Stop3", "lat": ..., "lng": ...},
+                    'dept': 519.0,
+                    'arrv': 559.0
+                }]
             }
         }], triggered_events)
 
@@ -779,10 +854,12 @@ class OneMobilityTestCase(unittest.TestCase):
                 'success': True,
                 'userId': 'User1',
                 'mobilityId': 'trip',
-                'org': {"locationId": "Stop2", "lat": ..., "lng": ...},
-                'dst': {"locationId": "Stop3", "lat": ..., "lng": ...},
-                'dept': 510.0,
-                'arrv': 550.0
+                'route':[{
+                    'org': {"locationId": "Stop2", "lat": ..., "lng": ...},
+                    'dst': {"locationId": "Stop3", "lat": ..., "lng": ...},
+                    'dept': 510.0,
+                    'arrv': 550.0
+                }]
             }
         }, {
             'eventType': EventType.DEPARTED,
@@ -829,10 +906,12 @@ class OneMobilityTestCase(unittest.TestCase):
                 'success': True,
                 'userId': 'User2',
                 'mobilityId': 'trip',
-                'org': {"locationId": "Stop1", "lat": ..., "lng": ...},
-                'dst': {"locationId": "Stop2", "lat": ..., "lng": ...},
-                'dept': 570.0,
-                'arrv': 620.0
+                'route':[{
+                    'org': {"locationId": "Stop1", "lat": ..., "lng": ...},
+                    'dst': {"locationId": "Stop2", "lat": ..., "lng": ...},
+                    'dept': 560.0,
+                    'arrv': 610.0
+                }]
             }
         }], triggered_events)
         self.simulation.ready_to_depart(user_id="User2")
@@ -916,6 +995,22 @@ class OneMobilityTestCase(unittest.TestCase):
                 'mobilityId': 'trip',
                 'location': {"locationId": "Stop2", "lat": ..., "lng": ...},
             }
+        }, {
+            'eventType': EventType.DEPARTED,
+            'time': 1440.0 - 60,
+            'details': {
+                'userId': None,
+                'mobilityId': 'trip',
+                'location': {"locationId": "Stop2", "lat": ..., "lng": ...},
+            }
+        }, {
+            'eventType': EventType.ARRIVED,
+            'time': 1440.0 - 60 + 30,
+            'details': {
+                'userId': None,
+                'mobilityId': 'trip',
+                'location': {"locationId": "Stop1", "lat": ..., "lng": ...},
+            }
         }], triggered_events)
 
     def test_reserve_same_org_while_on_boarding(self):
@@ -935,10 +1030,12 @@ class OneMobilityTestCase(unittest.TestCase):
                 'success': True,
                 'userId': 'User1',
                 'mobilityId': 'trip',
-                'org': {"locationId": "Stop2", "lat": ..., "lng": ...},
-                'dst': {"locationId": "Stop3", "lat": ..., "lng": ...},
-                'dept': 510.0,
-                'arrv': 550.0
+                'route':[{
+                    'org': {"locationId": "Stop2", "lat": ..., "lng": ...},
+                    'dst': {"locationId": "Stop3", "lat": ..., "lng": ...},
+                    'dept': 510.0,
+                    'arrv': 550.0
+                }]
             }
         }, {
             'eventType': EventType.DEPARTED,
@@ -985,10 +1082,12 @@ class OneMobilityTestCase(unittest.TestCase):
                 'success': True,
                 'userId': 'User2',
                 'mobilityId': 'trip',
-                'org': {"locationId": "Stop2", "lat": ..., "lng": ...},
-                'dst': {"locationId": "Stop3", "lat": ..., "lng": ...},
-                'dept': 516.0,
-                'arrv': 556.0
+                'route':[{
+                    'org': {"locationId": "Stop2", "lat": ..., "lng": ...},
+                    'dst': {"locationId": "Stop3", "lat": ..., "lng": ...},
+                    'dept': 516.0,
+                    'arrv': 556.0
+                }]
             }
         }], triggered_events)
         self.simulation.ready_to_depart(user_id="User2")
@@ -1034,6 +1133,22 @@ class OneMobilityTestCase(unittest.TestCase):
                 'mobilityId': 'trip',
                 'location': {"locationId": "Stop3", "lat": ..., "lng": ...},
             }
+        }, {
+            'eventType': EventType.DEPARTED,
+            'time': 1440.0 - 60,
+            'details': {
+                'userId': None,
+                'mobilityId': 'trip',
+                'location': {"locationId": "Stop3", "lat": ..., "lng": ...},
+            }
+        }, {
+            'eventType': EventType.ARRIVED,
+            'time': 1440.0 - 60 + 15,
+            'details': {
+                'userId': None,
+                'mobilityId': 'trip',
+                'location': {"locationId": "Stop1", "lat": ..., "lng": ...},
+            }
         }], triggered_events)
 
     def test_two_users_lifetime(self):
@@ -1053,10 +1168,12 @@ class OneMobilityTestCase(unittest.TestCase):
                 'success': True,
                 'userId': 'User1',
                 'mobilityId': 'trip',
-                'org': {"locationId": "Stop1", "lat": ..., "lng": ...},
-                'dst': {"locationId": "Stop2", "lat": ..., "lng": ...},
-                'dept': 490.0,
-                'arrv': 540.0
+                'route':[{
+                    'org': {"locationId": "Stop1", "lat": ..., "lng": ...},
+                    'dst': {"locationId": "Stop2", "lat": ..., "lng": ...},
+                    'dept': 490.0,
+                    'arrv': 540.0
+                }]
             }
         }], triggered_events)
 
@@ -1074,10 +1191,12 @@ class OneMobilityTestCase(unittest.TestCase):
                 'success': True,
                 'userId': 'User2',
                 'mobilityId': 'trip',
-                'org': {"locationId": "Stop3", "lat": ..., "lng": ...},
-                'dst': {"locationId": "Stop2", "lat": ..., "lng": ...},
-                'dept': 515.0,
-                'arrv': 555.0
+                'route':[{
+                    'org': {"locationId": "Stop3", "lat": ..., "lng": ...},
+                    'dst': {"locationId": "Stop2", "lat": ..., "lng": ...},
+                    'dept': 515.0,
+                    'arrv': 555.0
+                }]
             }
         }], triggered_events)
 
@@ -1149,6 +1268,22 @@ class OneMobilityTestCase(unittest.TestCase):
                 'mobilityId': 'trip',
                 'location': {"locationId": "Stop2", "lat": ..., "lng": ...},
             }
+        }, {
+            'eventType': EventType.DEPARTED,
+            'time': 1440.0 - 60,
+            'details': {
+                'userId': None,
+                'mobilityId': 'trip',
+                'location': {"locationId": "Stop2", "lat": ..., "lng": ...},
+            }
+        }, {
+            'eventType': EventType.ARRIVED,
+            'time': 1440.0 - 60 + 30,
+            'details': {
+                'userId': None,
+                'mobilityId': 'trip',
+                'location': {"locationId": "Stop1", "lat": ..., "lng": ...},
+            }
         }], triggered_events)
 
     def test_two_reservations(self):
@@ -1168,10 +1303,12 @@ class OneMobilityTestCase(unittest.TestCase):
                 'success': True,
                 'userId': 'User1',
                 'mobilityId': 'trip',
-                'org': {"locationId": "Stop1", "lat": ..., "lng": ...},
-                'dst': {"locationId": "Stop2", "lat": ..., "lng": ...},
-                'dept': 490.0,
-                'arrv': 540.0
+                'route':[{
+                    'org': {"locationId": "Stop1", "lat": ..., "lng": ...},
+                    'dst': {"locationId": "Stop2", "lat": ..., "lng": ...},
+                    'dept': 490.0,
+                    'arrv': 540.0
+                }]
             }
         }], triggered_events)
 
@@ -1189,10 +1326,12 @@ class OneMobilityTestCase(unittest.TestCase):
                 'success': True,
                 'userId': 'User2',
                 'mobilityId': 'trip',
-                'org': {"locationId": "Stop2", "lat": ..., "lng": ...},
-                'dst': {"locationId": "Stop1", "lat": ..., "lng": ...},
-                'dept': 540.0,
-                'arrv': 590.0
+                'route':[{
+                    'org': {"locationId": "Stop2", "lat": ..., "lng": ...},
+                    'dst': {"locationId": "Stop1", "lat": ..., "lng": ...},
+                    'dept': 540.0,
+                    'arrv': 590.0
+                }]
             }
         }], triggered_events)
         self.simulation.ready_to_depart(user_id="User1")
@@ -1264,6 +1403,82 @@ class OneMobilityTestCase(unittest.TestCase):
             }
         }], triggered_events)
 
+    def test_initial_stop(self):
+        run(self.simulation, until=480.0)
+
+        self.simulation.reserve_user(
+            user_id="User1",
+            org="Stop1",
+            dst="Stop2",
+            dept=490.0,
+        )
+
+        run(self.simulation, until=490.0)
+        self.simulation.ready_to_depart(user_id="User1")
+
+        e = run(self.simulation, until=1440.0 - 60) # end_window
+
+        # at stop2 before end window
+        self.assertEqual(
+            self.simulation.car_manager.mobilities['trip'].stop,
+            self.stop2
+        )
+
+        run(self.simulation, until=1440.0 + 30.0)
+        self.simulation.reserve_user( # failed reservation (before start window)
+            user_id="User2",
+            org="Stop2",
+            dst="Stop3",
+            dept=1440.0 + 40.0,
+        )
+        self.assertEqual( # at stop1
+            self.simulation.car_manager.mobilities['trip'].stop,
+            self.stop1
+        )
+
+    def test_initial_stop2(self):
+        run(self.simulation, until=480.0)
+
+        self.simulation.reserve_user(
+            user_id="User1",
+            org="Stop1",
+            dst="Stop2",
+            dept=490.0,
+        )
+
+        run(self.simulation, until=490.0)
+        self.simulation.ready_to_depart(user_id="User1")
+
+        e = run(self.simulation, until=1440.0 - 60) # end_window
+
+        # at stop2 before end window
+        self.assertEqual(
+            self.simulation.car_manager.mobilities['trip'].stop,
+            self.stop2
+        )
+
+        run(self.simulation, until=1440.0 + 20.0)
+        self.simulation.reserve_user(
+            user_id="User2",
+            org="Stop2",
+            dst="Stop3",
+            dept=1440.0 + 70.0,
+        )
+        e = run(self.simulation, until=1440.0 + 20.1)
+        self.assertEqual( # moving to stop2
+            self.simulation.car_manager.mobilities['trip'].stop,
+            None
+        )
+        e = run(self.simulation, until=1440.0 + 50.1) # arrive at stop2 and wait for User2
+        self.assertEqual( # at stop2
+            self.simulation.car_manager.mobilities['trip'].stop,
+            self.stop2
+        )
+        self.simulation.reservable(self.stop1.stop_id, self.stop2.stop_id)
+        self.assertEqual( # also at stop2
+            self.simulation.car_manager.mobilities['trip'].stop,
+            self.stop2
+        )
 
 class TwoMobilityTestCase(unittest.TestCase):
     def setUp(self) -> None:
@@ -1357,10 +1572,12 @@ class TwoMobilityTestCase(unittest.TestCase):
                 'success': True,
                 'userId': 'User1',
                 'mobilityId': 'trip1',
-                'org': {"locationId": "Stop1", "lat": ..., "lng": ...},
-                'dst': {"locationId": "Stop2", "lat": ..., "lng": ...},
-                'dept': 490.0,
-                'arrv': 540.0
+                'route':[{
+                    'org': {"locationId": "Stop1", "lat": ..., "lng": ...},
+                    'dst': {"locationId": "Stop2", "lat": ..., "lng": ...},
+                    'dept': 490.0,
+                    'arrv': 540.0
+                }]
             }
         }], triggered_events)
 
@@ -1398,4 +1615,23 @@ class TwoMobilityTestCase(unittest.TestCase):
                 'mobilityId': 'trip1',
                 'location': {"locationId": "Stop2", "lat": ..., "lng": ...},
             }
+        }, {
+            'eventType': EventType.DEPARTED,
+            'time': 1440.0 - 60,
+            'details': {
+                'userId': None,
+                'mobilityId': 'trip1',
+                'location': {"locationId": "Stop2", "lat": ..., "lng": ...},
+            }
+        }, {
+            'eventType': EventType.ARRIVED,
+            'time': 1440.0 - 60 + 30,
+            'details': {
+                'userId': None,
+                'mobilityId': 'trip1',
+                'location': {"locationId": "Stop1", "lat": ..., "lng": ...},
+            }
         }], triggered_events)
+
+if __name__ == '__main__':
+    unittest.main()

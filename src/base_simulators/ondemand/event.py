@@ -8,10 +8,6 @@ from environment import Environment
 
 
 class TriggerEvent:
-    """ 発火するイベント
-
-    イベントを発火させて他のサービスに通知するために利用する。"""
-
     def __init__(self, env: Environment, event_type: EventType):
         self.event_type = event_type
         self.env = env
@@ -44,18 +40,20 @@ class ReservedEvent(TriggerEvent):
                 "success": True,
                 "userId": self.user.user_id,
                 "mobilityId": self.mobility.mobility_id if self.mobility else None,
-                "org": {
-                    "locationId": self.user.org.stop_id,
-                    "lat": self.user.org.lat,
-                    "lng": self.user.org.lng,
-                },
-                "dst": {
-                    "locationId": self.user.dst.stop_id,
-                    "lat": self.user.dst.lat,
-                    "lng": self.user.dst.lng,
-                },
-                "dept": self.env.elapsed(self.departure),
-                "arrv": self.env.elapsed(self.arrival)
+                "route": [{
+                    "org": {
+                        "locationId": self.user.org.stop_id,
+                        "lat": self.user.org.lat,
+                        "lng": self.user.org.lng,
+                    },
+                    "dst": {
+                        "locationId": self.user.dst.stop_id,
+                        "lat": self.user.dst.lat,
+                        "lng": self.user.dst.lng,
+                    },
+                    "dept": self.env.elapsed(self.departure),
+                    "arrv": self.env.elapsed(self.arrival)
+                }],
             }
         }
 
@@ -118,6 +116,9 @@ class EventQueue:
     def __init__(self, env: Environment):
         self._env = env
         self._events: typing.List[typing.Dict] = []
+
+    def __repr__(self):
+        return f"EventQueue(env=Environment({self.env.datetime_now}), events={self._events})"
 
     @property
     def env(self):

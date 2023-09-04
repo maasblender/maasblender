@@ -11,7 +11,7 @@ from event import EventQueue
 from mobility import CarManager, CarSetting
 from jschema.query import Mobility
 
-logger = getLogger("schedsim")
+logger = getLogger(__name__)
 
 
 class Simulation:
@@ -34,14 +34,14 @@ class Simulation:
             event_queue=self.event_queue,
             board_time=board_time,
             max_delay_time=max_delay_time,
-            settings={
+            settings=[
                 CarSetting(
                     mobility_id=mobility_id,
                     capacity=mobility.capacity,
                     trip=trips[mobility.trip_id],
                     stop=self.stops[mobility.stop]
                 ) for mobility_id, mobility in settings.items()
-            }
+            ]
         )
 
     def start(self):

@@ -1,159 +1,98 @@
 # SPDX-FileCopyrightText: 2022 TOYOTA MOTOR CORPORATION and MaaS Blender Contributors
 # SPDX-License-Identifier: Apache-2.0
-import contextlib
-import io
-import typing
-import sys
-from io import StringIO
-import traceback
-import logging
 import datetime
+import io
+import logging
 import zipfile
-import csv
-import codecs
 
 import aiohttp
 import fastapi
 
-import jschema.query
-from jschema.response import Peek, Step, ReservableStatus
+import httputil
+import jschema.events
+from config import env
+from core import Network
 from gtfs import GtfsFlexFilesReader
+from jschema import query, response
 from simulation import Simulation
-from core import Stop, Trip, Network
 
-logger: logging.Logger
-sim: Simulation
-network: Network | None = None
-stops: typing.Dict[str, Stop] | None = None
-trips: typing.Dict[str, Trip] | None = None
-
-app = fastapi.FastAPI(debug=True)
-
-CAR_SPEED = 20.0 * 1000 / 60  # km/h -> [meter/分]
+logger = logging.getLogger(__name__)
+app = fastapi.FastAPI(
+    title="mobility simulator for on-demand mobility",
+    description="simulate on-demand bus, etc. using GTFS FLEX",
+    # version="0.1.0",
+    # docs_url="/docs"
+    # redoc_url="/redoc",
+)
 
 
 @app.on_event("startup")
-async def startup():
-    global logger
-    logger = logging.getLogger('schedsim')
-    _handler = logging.StreamHandler(sys.stdout)
-    logger.addHandler(_handler)
-    logger.setLevel(logging.INFO)
+def startup():
+    class MultilineLogFormatter(logging.Formatter):
+        def format(self, record: logging.LogRecord) -> str:
+            message = super().format(record)
+            return message.replace("\n", "\t\n")  # indicate continuation line by trailing tab
+
+    formatter = MultilineLogFormatter(env.log_format)
+    handler = logging.StreamHandler()
+    handler.setFormatter(formatter)
+    logging.basicConfig(level=env.log_level, handlers=[handler])
+
+    # replace logging formatter for uvicorn
+    for handler in logging.getLogger("uvicorn").handlers:
+        handler.setFormatter(formatter)
+
+    logger.debug("configuration: %s", env.json())
 
 
 @app.exception_handler(Exception)
-async def exception_callback(_: fastapi.Request, exc: Exception):
-    logger.error(f"Unexpected Error {exc.args} \n {traceback.format_exc()}")
+def exception_callback(request: fastapi.Request, exc: Exception):
+    from fastapi.responses import PlainTextResponse
+    # omitted traceback here, because uvicorn outputs traceback as ASGI Exception
+    logger.error("failed process called at %s", request.url)
+    return PlainTextResponse(str(exc), status_code=500)
 
 
-@contextlib.contextmanager
-def open_zip_archive(file: typing.BinaryIO, file_type: str, limit=1 * 1024 * 1024) -> zipfile.ZipFile:
-    if not zipfile.is_zipfile(file):
-        raise fastapi.HTTPException(
-            status_code=fastapi.status.HTTP_400_BAD_REQUEST,
-            detail=f"{file_type} archive is not zip",
-        )
-    if file_size := file.tell() > limit:
-        raise fastapi.HTTPException(
-            status_code=fastapi.status.HTTP_400_BAD_REQUEST,
-            detail=f"{file_type} files are {file_size} bytes, but limited to 1 MB",
-        )
-    file.seek(0)
-    with zipfile.ZipFile(io.BytesIO(file.read())) as archive:
-        yield archive
+file_table = httputil.FileManager(limit=env.FILE_SIZE_LIMIT)
+sim: Simulation | None = None
 
 
-@app.post("/gtfs_flex")
-async def upload_gtfs_flex(upload_file: fastapi.UploadFile = fastapi.File(...)):
-    file = upload_file.file
+@app.post("/upload", response_model=response.Message)
+def upload(upload_file: fastapi.UploadFile = fastapi.File(...)):
     try:
-        with open_zip_archive(file, "GTFS FLEX") as archive:
-            reader = GtfsFlexFilesReader().read(archive)
-        global stops, trips
-        trips = reader.trips
-        stops = reader.stops
-    finally:
-        file.close()
-    return {
-        "message": "successfully uploaded gtfs flex files."
-    }
-
-
-@app.post("/network")
-async def configure_network(upload_file: fastapi.UploadFile = fastapi.File(...)):
-    file = upload_file.file
-    try:
-        if file_size := file.tell() > 1 * 1024 * 1024:
-            raise fastapi.HTTPException(
-                status_code=fastapi.status.HTTP_400_BAD_REQUEST,
-                detail=f"GTFS files are {file_size} bytes, but limited to 1 MB",
-            )
-        file.seek(0)
-
-        global network
-        network = Network()
-
-        reader = csv.DictReader(codecs.iterdecode(file, 'utf-8'))
-        for rows in reader:
-            stop_a = reader.fieldnames[reader.line_num - 2]
-            for stop_b in reader.fieldnames:
-                if stop_a == stop_b:
-                    continue
-                network.add_edge(stop_a, stop_b, float(rows[stop_b]))
-
+        file_table.put(upload_file)
     finally:
         upload_file.file.close()
-
     return {
-        "message": "successfully uploaded network file."
+        "message": f"successfully uploaded. {upload_file.filename}"
     }
 
 
-@app.post("/setup")
-async def setup(settings: jschema.query.Setup):
-    global stops, trips
-
-    if gtfs_url := settings.gtfs_flex.fetch_url:
-        async with aiohttp.ClientSession(raise_for_status=True) as session:
-            async with session.get(gtfs_url) as resp:
-                data = await resp.read()
-        if file_size := len(data) > 1 * 1024 * 1024:
-            raise fastapi.HTTPException(
-                status_code=fastapi.status.HTTP_400_BAD_REQUEST,
-                detail=f"GTFS files are {file_size} bytes, but limited to 1 MB",
-            )
+@app.post("/setup", response_model=response.Message)
+async def setup(settings: query.Setup):
+    async with aiohttp.ClientSession() as session:
+        ref = settings.input_files[0]
+        filename, data = await file_table.pop(session, filename=ref.filename, url=ref.fetch_url)
         with zipfile.ZipFile(io.BytesIO(data)) as archive:
             reader = GtfsFlexFilesReader().read(archive)
         trips = reader.trips
         stops = reader.stops
 
-    if not trips:
-        raise fastapi.HTTPException(
-            status_code=fastapi.status.HTTP_400_BAD_REQUEST,
-            detail="GTFS files were not properly configured."
-        )
-
-    global network
-    if not network:
         if network_url := settings.network.fetch_url:
-            async with aiohttp.ClientSession(raise_for_status=True) as session:
-                data = [
-                    jschema.query.Location(locationId=e.stop_id, lat=e.lat, lng=e.lng).dict()
-                    for e in sorted(stops.values(), key=lambda e: e.stop_id)
-                ]
-                async with session.post(network_url, json=data) as resp:
-                    text = await resp.text("utf-8-sig")
-            logger.info("fetch %s, result:\n%s", network_url, text)
+            stops_req = [
+                jschema.events.Location(locationId=e.stop_id, lat=e.lat, lng=e.lng).dict()
+                for e in sorted(stops.values(), key=lambda e: e.stop_id)
+            ]
+            async with session.post(network_url, json=stops_req) as resp:
+                await httputil.check_response(resp)
+                matrix = await resp.json()
             network = Network()
-            reader = csv.DictReader(StringIO(text))
-            for rows in reader:
-                stop_a = reader.fieldnames[reader.line_num - 2]
-                for stop_b in reader.fieldnames:
+            for stop_a, row in zip(matrix["stops"], matrix["matrix"]):
+                for stop_b, distance in zip(matrix["stops"], row):
                     if stop_a == stop_b:
                         continue
-                    distance = float(rows[stop_b])
-                    assert distance >= 0, f"distance must not negative: {rows[stop_b]}, {stop_a} -> {stop_b}"
-                    network.add_edge(stop_a, stop_b, distance / CAR_SPEED)
+                    assert distance >= 0, f"distance must not negative: {distance}, {stop_a} -> {stop_b}"
+                    network.add_edge(stop_a, stop_b, distance / settings.mobility_speed)
         else:
             raise fastapi.HTTPException(
                 status_code=fastapi.status.HTTP_400_BAD_REQUEST,
@@ -175,24 +114,24 @@ async def setup(settings: jschema.query.Setup):
     }
 
 
-@app.post("/start")
-async def start():
+@app.post("/start", response_model=response.Message)
+def start():
     sim.start()
-    return {}
+    return {
+        "message": "successfully started."
+    }
 
 
-@app.get("/peek", response_model=Peek)
-async def peek():
-    global sim
-
+@app.get("/peek", response_model=response.Peek)
+def peek():
     peek_time = sim.peek()
     return {
         "next": peek_time if peek_time < float('inf') else -1
     }
 
 
-@app.post("/step", response_model=Step)
-async def step():
+@app.post("/step", response_model=response.Step)
+def step():
     return {
         "now": sim.step(),
         "events": sim.event_queue.events
@@ -200,40 +139,37 @@ async def step():
 
 
 @app.post("/triggered")
-async def triggered(event: typing.Union[jschema.query.Event, jschema.query.ReserveEvent, jschema.query.DepartEvent]):
-
+def triggered(event: query.TriggeredEvent):
     # expect nothing to happen. just let time forward.
     if sim.env.now < event.time:
         sim.env.run(until=event.time)
 
-    if event.eventType == jschema.query.EventType.RESERVE:
-        sim.reserve_user(
-            user_id=event.details.userId,
-            org=event.details.org.locationId,
-            dst=event.details.dst.locationId,
-            dept=event.details.dept
-        )
-    elif event.eventType == jschema.query.EventType.DEPART:
-        sim.ready_to_depart(
-            user_id=event.details.userId
-        )
+    match event:
+        case query.ReserveEvent():
+            sim.reserve_user(
+                user_id=event.details.userId,
+                org=event.details.org.locationId,
+                dst=event.details.dst.locationId,
+                dept=event.details.dept
+            )
+        case query.DepartEvent():
+            sim.ready_to_depart(
+                user_id=event.details.userId
+            )
 
 
-@app.get("/reservable", response_model=ReservableStatus)
-async def reservable(org: str, dst: str):
+@app.get("/reservable", response_model=response.ReservableStatus)
+def reservable(org: str, dst: str):
     return {
         "reservable": sim.reservable(org, dst)
     }
 
 
-@app.post("/finish")
-async def finish():
+@app.post("/finish", response_model=response.Message)
+def finish():
     global sim
-    global trips
-
     sim = None
-    trips = None
-
+    file_table.clear()
     return {
         "message": "successfully finished."
     }

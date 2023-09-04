@@ -1,5 +1,6 @@
 # SPDX-FileCopyrightText: 2022 TOYOTA MOTOR CORPORATION and MaaS Blender Contributors
 # SPDX-License-Identifier: Apache-2.0
+import dataclasses
 import typing
 from enum import Enum
 from datetime import date, datetime, timedelta
@@ -20,13 +21,12 @@ class Stop(typing.NamedTuple):
     lng: float
 
 
+@dataclasses.dataclass(frozen=True)
 class Group:
     """ Group of stops """
-
-    def __init__(self, group_id: str, name: str, locations: list[Stop] = None):
-        self.group_id = group_id
-        self.name = name
-        self.locations: list[Stop] = locations if locations else []
+    group_id: str
+    name: str
+    locations: list[Stop] = dataclasses.field(default_factory=list)
 
 
 class Service:
@@ -43,6 +43,10 @@ class Service:
         self._weekday = [monday, tuesday, wednesday, thursday, friday, saturday, sunday]
         self._added_exceptions: typing.List[date] = []
         self._removed_exceptions: typing.List[date] = []
+
+    def __repr__(self):
+        weekday = ''.join(str(int(e)) for e in self._weekday)
+        return f"Service(start_day={self._start_day}, end_day={self._end_day}, weekday={weekday})"
 
     def append_exception(self, exception_date: date, added=True):
         if added:
@@ -72,12 +76,11 @@ class StopTime(typing.NamedTuple):
     end_window: timedelta
 
 
+@dataclasses.dataclass(frozen=True)
 class Trip:
     """ Sequence of two or more stops that occur during a specific time period. """
-
-    def __init__(self, service: Service, stop_time: StopTime):
-        self.service = service
-        self.stop_time = stop_time
+    service: Service
+    stop_time: StopTime
 
 
 class Network:
@@ -93,15 +96,21 @@ class Network:
         return self._network[(a, b)] if a != b else 0.0
 
 
+@dataclasses.dataclass(frozen=True)
 class User:
-    """ 利用者 """
+    user_id: str
+    org: Stop
+    dst: Stop
+    desired: datetime
+    ideal: timedelta
 
-    def __init__(self, user_id: str, org: Stop, dst: Stop, desired: datetime, ideal: timedelta):
-        self.user_id = user_id
-        self.org = org
-        self.dst = dst
-        self.desired_dept = desired
-        self.ideal_duration = ideal
+    @property
+    def desired_dept(self):
+        return self.desired
+
+    @property
+    def ideal_duration(self):
+        return self.ideal
 
 
 class Mobility:

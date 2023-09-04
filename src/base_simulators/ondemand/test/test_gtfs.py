@@ -14,18 +14,18 @@ class ReadFlexTestCase(unittest.TestCase):
             {
                 "stop_id": "S001",
                 "stop_name": "Stop1",
-                "stop_lat": 137.1,
-                "stop_lon": 36.1
+                "stop_lat": 154.1,
+                "stop_lon": 27.1
             }, {
                 "stop_id": "S002",
                 "stop_name": "Stop2",
-                "stop_lat": 137.2,
-                "stop_lon": 36.4
+                "stop_lat": 154.2,
+                "stop_lon": 27.4
             }, {
                 "stop_id": "S003",
                 "stop_name": "Stop3",
-                "stop_lat": 137.3,
-                "stop_lon": 36.9
+                "stop_lat": 154.3,
+                "stop_lon": 27.9
             }
         ]
         self.location_groups = [  # location_groups.txt
@@ -105,20 +105,20 @@ class ReadFlexTestCase(unittest.TestCase):
             "S001": Stop(
                 stop_id="S001",
                 name="Stop1",
-                lat=137.1,
-                lng=36.1
+                lat=154.1,
+                lng=27.1
             ),
             "S002": Stop(
                 stop_id="S002",
                 name="Stop2",
-                lat=137.2,
-                lng=36.4
+                lat=154.2,
+                lng=27.4
             ),
             "S003": Stop(
                 stop_id="S003",
                 name="Stop3",
-                lat=137.3,
-                lng=36.9
+                lat=154.3,
+                lng=27.9
             )
         }
         self.assertEqual(expected, self.reader.stops)
@@ -137,20 +137,20 @@ class ReadFlexTestCase(unittest.TestCase):
                     Stop(
                         stop_id="S001",
                         name="Stop1",
-                        lat=137.1,
-                        lng=36.1
+                        lat=154.1,
+                        lng=27.1
                     ),
                     Stop(
                         stop_id="S002",
                         name="Stop2",
-                        lat=137.2,
-                        lng=36.4
+                        lat=154.2,
+                        lng=27.4
                     ),
                     Stop(
                         stop_id="S003",
                         name="Stop3",
-                        lat=137.3,
-                        lng=36.9
+                        lat=154.3,
+                        lng=27.9
                     )
                 ]
             )

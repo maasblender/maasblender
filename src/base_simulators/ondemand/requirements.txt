@@ -1,6 +1,6 @@
-fastapi >= 0.73
-uvicorn >= 0.17
-simpy >= 4.0
-pydantic >= 1.9
 aiohttp >= 3.8.1
-python-multipart~=0.0.5
+fastapi >= 0.73
+pydantic >= 1.9.0
+python-multipart >= 0.0.5
+simpy >= 4.0
+uvicorn >= 0.17
