@@ -11,7 +11,7 @@ from core import Trip
 from event import EventQueue, ReserveFailedEvent
 from mobility import CarManager, CarSetting
 
-logger = getLogger("schedsim")
+logger = getLogger(__name__)
 
 
 class Simulation:
@@ -31,7 +31,7 @@ class Simulation:
         )
         self.stops = {
             stop_time.stop.stop_id: stop_time.stop
-            for trip in trips.values() for stop_time in trip.stop_times()
+            for trip in trips.values() for stop_time in trip.stop_times
         }
 
     def start(self):
@@ -52,8 +52,6 @@ class Simulation:
         return False
 
     def reserve_user(self, user_id: str, org: str, dst: str, dept: float):
-        """ 利用者が車両の乗車予約をする。"""
-
         org = self.stops[org]
         dst = self.stops[dst]
         if mobility := self.car_manager.earliest_mobility(org, dst, dept):
@@ -72,9 +70,10 @@ class Simulation:
         ))
 
     def dept_user(self, user_id: str):
-        """ 利用者が予約した車両を利用して目的地に向かう。
+        """ A user uses the vehicle reserved by him/her self to go to the destination.
 
-        利用者は出発地で待機する。予約した車両が来たら乗車して目的地に向かう。"""
+        A user waits at the departure point. When the reserved vehicle arrives,
+        the user boards the vehicle and heads for the destination."""
 
         user = self.car_manager.find_user(user_id)
         assert user

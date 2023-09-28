@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 
 from simpy import Environment as Original
 
-logger = getLogger("schedsim")
+logger = getLogger(__name__)
 
 
 class Environment(Original):

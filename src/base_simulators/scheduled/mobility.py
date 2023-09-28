@@ -11,14 +11,10 @@ from core import Path, Trip, Stop, UserStatus, User, Mobility
 from environment import Environment
 from event import EventQueue, DepartedEvent, ArrivedEvent, ReservedEvent
 
-logger = getLogger("schedsim")
+logger = getLogger(__name__)
 
 
 class Car(Mobility):
-    """ 移動体
-
-    時刻表とおりに停車地を移動する。停車地では乗客が昇降できる。"""
-
     def __init__(self, env: Environment, queue: EventQueue,
                  mobility_id: str, capacity: int, trip: Trip):
         super().__init__(mobility_id=mobility_id, trip=trip)
@@ -57,8 +53,6 @@ class Car(Mobility):
         return True
 
     def _get_on(self):
-        """ 乗客の乗車処理 """
-
         assert self.stop
 
         for user in self.waiting_users:
@@ -74,8 +68,6 @@ class Car(Mobility):
         assert len(self.passengers) <= self._capacity
 
     def _get_off(self):
-        """ 乗客の降車処理 """
-
         assert self.stop
 
         for user in self.passengers:
@@ -100,7 +92,6 @@ class Car(Mobility):
         self._stop = None
 
     def run(self):
-        """ 運行プロセス """
         while True:
             if trip := self.trip():
 
@@ -111,18 +102,25 @@ class Car(Mobility):
                     yield self.env.timeout_until(plan.departure)
                     self._departure()
 
-                # ToDo: 将来的に未来の予約もする場合は `not len(self.passengers)` を検討する。
-                assert not len(self.users)
+                assert not self.passengers, f"remain users on end: {self}"
 
             else:
-                # 運行がない場合は次の日まで待機する。
+                # If there is no operation for the day, wait until the next day.
                 yield self.env.timeout_until(
                     datetime.combine(self.current_datetime.date() + timedelta(days=1), time())
                 )
 
-    def reserve(self, user_id: str, path: Path):
-        """ 乗車予約をする """
+    def __str__(self):
+        data = dict(
+            now=self.env.now,
+            mobility_id=self.mobility_id,
+            trip=self._trip,
+            stop=self.stop,
+            users=tuple(self.users.values()),
+        )
+        return f"Car({data})"
 
+    def reserve(self, user_id: str, path: Path):
         assert user_id not in self.users
         self.users.update({user_id: User(user_id, path)})
         self.env.process(self._reserved(self.users[user_id]))
@@ -136,19 +134,19 @@ class Car(Mobility):
         ))
 
     def earliest_path(self, org: Stop, dst: Stop, dept: float):
-        """ 出発地から目的地に移動する最短経路を返す
+        """ Returns the shortest path from the `org` point to the `dst` point
 
-        移動できない場合は None を返す。"""
+        Returns `None` if no route can be found"""
 
         dept_datetime = self.env.datetime_from(dept)
 
-        # 運行日が当日を含む前後1日の経路を探索する。
+        # Search for paths for one day before or after the day of operation, including the day of operation.
         for path in chain(
             self.paths(org, dst, at=dept_datetime.date() - timedelta(days=1)),
             self.paths(org, dst, at=dept_datetime.date()),
             self.paths(org, dst, at=dept_datetime.date() + timedelta(days=1))
         ):
-            # 乗車できる
+            # This route is available for boarding.
             if dept_datetime < path.departure:
                 return path
         return None
@@ -161,7 +159,7 @@ class CarSetting(typing.NamedTuple):
 
 
 class CarManager:
-    """ 複数の乗合バスを管理する """
+    """ Manage multiple transit buses """
 
     def __init__(self, env: Environment, event_queue: EventQueue, settings: typing.Collection[CarSetting]):
         self.env = env
@@ -187,9 +185,9 @@ class CarManager:
             self.env.process(car.run())
 
     def earliest_mobility(self, org: Stop, dst: Stop, dept: float) -> typing.Optional[Car]:
-        """ 最も早く目的地に到着する車両を返す
+        """ Return the vehicle that arrives at the destination earliest.
 
-        乗車予約できる車両がない場合は None を返す。"""
+        Returns `None` If there is no vehicle available """
 
         car_arrivals = {
             k: v.arrival for k, v in {

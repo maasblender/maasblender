@@ -7,7 +7,6 @@ from logging import getLogger
 
 from geopy.distance import geodesic
 
-
 logger = getLogger(__name__)
 
 
@@ -31,20 +30,18 @@ class Location:
     def __str__(self):
         return self.location_id
 
-    def distance(self, other: Location) -> float:
-        """ 地点間の直線距離(m) """
-        return geodesic([self.lat, self.lng], [other.lat, other.lng]).meters
+
+def calc_distance(src: Location, dst: Location) -> float:
+    return geodesic([src.lat, src.lng], [dst.lat, dst.lng]).meters
 
 
 class Mobility:
     """Mobility interface for representing a chargeable electric-vehicle."""
 
-    def __init__(self, id_: str):
+    def __init__(self, id_: str, velocity: float):
         self.id = id_
-        self.velocity = 200  # (m/min)
+        self.velocity = velocity  # (m/min)
         self.reserved = False
 
     def duration(self, org: Location, dst: Location):
-        """ 出発地から目的地までの所要時間を返す """
-
-        return org.distance(dst) / self.velocity
+        return calc_distance(org, dst) / self.velocity

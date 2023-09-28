@@ -1,6 +1,10 @@
 # SPDX-FileCopyrightText: 2022 TOYOTA MOTOR CORPORATION and MaaS Blender Contributors
 # SPDX-License-Identifier: Apache-2.0
+from __future__ import annotations
+
 import typing
+
+import simpy
 
 from core import EventType, Mobility
 
@@ -39,18 +43,20 @@ class ReservedEvent(Event):
                 "userId": self.user_id,
                 "mobilityId": self.mobility.id,
                 "success": True,
-                "org": {
-                    "locationId": self.org.location_id,
-                    "lat": self.org.lat,
-                    "lng": self.org.lng
-                },
-                "dst": {
-                    "locationId": self.dst.location_id,
-                    "lat": self.dst.lat,
-                    "lng": self.dst.lng
-                },
-                "dept": self.dept,
-                "arrv": self.arrv
+                "route": [{
+                    "org": {
+                        "locationId": self.org.location_id,
+                        "lat": self.org.lat,
+                        "lng": self.org.lng
+                    },
+                    "dst": {
+                        "locationId": self.dst.location_id,
+                        "lat": self.dst.lat,
+                        "lng": self.dst.lng
+                    },
+                    "dept": self.dept,
+                    "arrv": self.arrv
+                }]
             }}
 
 
@@ -97,3 +103,18 @@ class DepartedEvent(DepartedArrivedEvent):
 class ArrivedEvent(DepartedArrivedEvent):
     def __init__(self, mobility: Mobility, location: Location, user_id: str = None):
         super().__init__(EventType.ARRIVED, mobility, location, user_id)
+
+
+class EventQueue:
+    def __init__(self, env: simpy.Environment):
+        self.env = env
+        self._events: list[dict] = []
+
+    @property
+    def events(self):
+        events = self._events
+        self._events = []
+        return events
+
+    def enqueue(self, event: Event):
+        self._events.append({"time": self.env.now} | event.dumps())

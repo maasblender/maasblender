@@ -1,69 +1,30 @@
 # SPDX-FileCopyrightText: 2022 TOYOTA MOTOR CORPORATION and MaaS Blender Contributors
 # SPDX-License-Identifier: Apache-2.0
-import typing
-from enum import Enum
+from pydantic import BaseModel, AnyHttpUrl, root_validator, conlist, constr
 
-from pydantic import BaseModel
+from jschema.events import ReserveEvent, DepartEvent, Event as OtherEvent
 
 
 class Mobility(BaseModel):
     capacity: int
 
 
-class GTFSDetails(BaseModel):
-    fetch_url: str
+class InputFilesItem(BaseModel):
+    filename: str | None = None
+    fetch_url: AnyHttpUrl | None = None
+
+    @root_validator
+    def check_exist_either(cls, values):
+        if values.get("filename") or values.get("fetch_url"):
+            return values
+        raise ValueError("specified neither filename nor fetch_url")
 
 
 class Setup(BaseModel):
-    reference_time: str
-    gtfs: GTFSDetails
+    reference_time: constr(min_length=8, max_length=8)
+    input_files: conlist(InputFilesItem, min_items=1, max_items=1)
     mobility: Mobility
 
 
-class EventType(str, Enum):
-    DEMAND = 'DEMAND'
-    RESERVE = 'RESERVE'
-    RESERVED = 'RESERVED'
-    DEPART = 'DEPART'
-    DEPARTED = 'DEPARTED'
-    ARRIVED = 'ARRIVED'
-
-
-class Event(BaseModel):
-    eventType: typing.Union[
-        typing.Literal[EventType.DEMAND],
-        typing.Literal[EventType.RESERVED],
-        typing.Literal[EventType.DEPARTED],
-        typing.Literal[EventType.ARRIVED]
-    ]
-    time: float
-    details: typing.Any
-
-
-class Location(BaseModel):
-    locationId: str
-    lat: float
-    lng: float
-
-
-class ReserveEventDetails(BaseModel):
-    userId: str
-    org: Location
-    dst: Location
-    dept: float
-
-
-class ReserveEvent(BaseModel):
-    eventType: typing.Literal[EventType.RESERVE]
-    time: float
-    details: ReserveEventDetails
-
-
-class DepartEventDetails(BaseModel):
-    userId: str
-
-
-class DepartEvent(BaseModel):
-    eventType: typing.Literal[EventType.DEPART]
-    time: float
-    details: DepartEventDetails
+# Note: OtherEvent must be described at the end
+TriggeredEvent = ReserveEvent | DepartEvent | OtherEvent

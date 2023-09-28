@@ -6,7 +6,7 @@ from datetime import date
 
 from core import Service
 
-logger = logging.getLogger('schedsim')
+logger = logging.getLogger(__name__)
 
 
 class SimpleTestCase(unittest.TestCase):

@@ -8,10 +8,6 @@ from environment import Environment
 
 
 class TriggerEvent:
-    """ 発火するイベント
-
-    イベントを発火させて他のサービスに通知するために利用する。"""
-
     def __init__(self, env: Environment, event_type: EventType):
         self.event_type = event_type
         self.env = env
@@ -40,18 +36,20 @@ class ReservedEvent(TriggerEvent):
                 "success": True,
                 "userId": self.user.user_id,
                 "mobilityId": self.mobility.mobility_id if self.mobility else None,
-                "org": {
-                    "locationId": self.user.path.org.stop_id,
-                    "lat": self.user.path.org.lat,
-                    "lng": self.user.path.org.lng,
-                },
-                "dst": {
-                    "locationId": self.user.path.dst.stop_id,
-                    "lat": self.user.path.dst.lat,
-                    "lng": self.user.path.dst.lng,
-                },
-                "dept": self.env.elapsed(self.user.path.departure),
-                "arrv": self.env.elapsed(self.user.path.arrival)
+                "route": [{
+                    "org": {
+                        "locationId": self.user.path.org.stop_id,
+                        "lat": self.user.path.org.lat,
+                        "lng": self.user.path.org.lng,
+                    },
+                    "dst": {
+                        "locationId": self.user.path.dst.stop_id,
+                        "lat": self.user.path.dst.lat,
+                        "lng": self.user.path.dst.lng,
+                    },
+                    "dept": self.env.elapsed(self.user.path.departure),
+                    "arrv": self.env.elapsed(self.user.path.arrival)
+                }]
             }
         }
 

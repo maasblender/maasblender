@@ -13,7 +13,7 @@ class EventType(str, Enum):
 
 
 class UserStatus(Enum):
-    """ 利用者の状態 """
+    """ A user is in one of the following states """
     RESERVED = auto()
     WAITING = auto()
     RIDING = auto()
@@ -36,18 +36,21 @@ class Stop(typing.NamedTuple):
     lng: float
 
 
-class Route:
+class Route(typing.NamedTuple):
     """ Transit routes. A route is a group of trips that are displayed to riders as a single service. """
 
-    def __init__(self, agency: Agency, long_name: str, short_name: str, route_type: str):
-        self.agency = agency
-        self.long_name = long_name
-        self.short_name = short_name
-        self.route_type = route_type
+    agency: Agency
+    long_name: str
+    short_name: str
+    route_type: str
 
 
+@dataclasses.dataclass(init=False)
 class StopTime:
     """ Times that a vehicle arrives at and departs from stops for each trip."""
+    stop: Stop
+    arrival: timedelta
+    departure: timedelta
 
     def __init__(self, stop: Stop, arrival: timedelta = None, departure: timedelta = None):
         assert arrival or departure
@@ -56,10 +59,10 @@ class StopTime:
         self.departure = departure if departure else arrival
 
 
+@dataclasses.dataclass(frozen=True)
 class StopTimeWithDateTime:
-    def __init__(self, stop_time: StopTime, reference_date: date):
-        self.stop_time = stop_time
-        self._reference_date: typing.Optional[date] = reference_date
+    stop_time: StopTime
+    reference_date: date
 
     @property
     def stop(self):
@@ -67,27 +70,34 @@ class StopTimeWithDateTime:
 
     @property
     def arrival(self):
-        return datetime.combine(self._reference_date, time()) + self.stop_time.arrival
+        return datetime.combine(self.reference_date, time()) + self.stop_time.arrival
 
     @property
     def departure(self):
-        return datetime.combine(self._reference_date, time()) + self.stop_time.departure
+        return datetime.combine(self.reference_date, time()) + self.stop_time.departure
 
 
+@dataclasses.dataclass
 class Service:
     """ A set of dates when service is available for one or more routes.
 
     Indicates whether the service operates for each day of the week in the date range specified in the start_date and
     end_date fields. Exceptions for particular dates can be explicitly activated or deactivated by date. """
 
+    _start_day: date
+    _end_day: date
+    _weekday: tuple[bool, bool, bool, bool, bool, bool, bool]
+    _added_exceptions: typing.List[date]
+    _removed_exceptions: typing.List[date]
+
     def __init__(self, start_date: date, end_date: date,
                  monday=False, tuesday=False, wednesday=False, thursday=False, friday=False,
                  saturday=False, sunday=False):
         self._start_day = start_date
         self._end_day = end_date
-        self._weekday = [monday, tuesday, wednesday, thursday, friday, saturday, sunday]
-        self._added_exceptions: typing.List[date] = []
-        self._removed_exceptions: typing.List[date] = []
+        self._weekday = (monday, tuesday, wednesday, thursday, friday, saturday, sunday)
+        self._added_exceptions = []
+        self._removed_exceptions = []
 
     def append_exception(self, exception_date: date, added=True):
         if added:
@@ -109,22 +119,20 @@ class Service:
         return False
 
 
+@dataclasses.dataclass(frozen=True)
 class Trip:
     """ Sequence of two or more stops that occur during a specific time period. """
+    route: Route
+    service: Service
+    stop_times: typing.List[StopTime]
 
-    def __init__(self, route: Route, service: Service, stop_times: typing.List[StopTime]):
-        assert len(stop_times) >= 2
-        self.route = route
-        self.service = service
-        self._stop_times = stop_times
-
-    def stop_times(self):
-        return self._stop_times
+    def __post_init__(self):
+        assert len(self.stop_times) >= 2
 
     def stop_times_at(self, at_date: date):
         return [
             StopTimeWithDateTime(stop_time=stop_time, reference_date=at_date)
-            for stop_time in self._stop_times
+            for stop_time in self.stop_times
         ]
 
     def start_time(self, at: date):
@@ -176,13 +184,11 @@ class Path:
         return self.drop_off.arrival
 
 
+@dataclasses.dataclass
 class User:
-    """ 利用者 """
-    def __init__(self, user_id: str, path: Path):
-        assert path
-        self.user_id = user_id
-        self.path = path
-        self._status = UserStatus.RESERVED
+    user_id: str
+    path: Path
+    _status: UserStatus = UserStatus.RESERVED
 
     @property
     def status(self):
@@ -198,7 +204,7 @@ class User:
 
 
 class Mobility:
-    """ 時刻表に基づいて運行する移動体 """
+    """ Mobility is moving according to a timetable (`Trip`) """
 
     def __init__(self, mobility_id, trip: Trip):
         self.mobility_id = mobility_id
@@ -220,12 +226,14 @@ class Mobility:
 
     @property
     def operation_date(self):
-        """ 現在時刻から運行日を返す。
+        """ Returns the operation date from the current time.
 
-        前日の運行が終了していない場合は前日の日付を返す。
-        前日の運行が終了していて、当日の運行が終了していない場合は当日の日付けを返す。
-        前日の運行が終了していて、当日の運行がない場合は当日の日付けを返す。
-        当日の運行が終了している場合は翌日の日付を返す。
+        If the previous day's operation has not been completed, returns the previous day's date.
+        If the previous day's operation has been completed and there are some operations for the current day,
+        returns the date of the current day.
+        If the previous day's operation has been completed and there is no operation for the current day,
+        returns the date of the current day.
+        If today's operation has been completed, returns the next day's date.
         """
 
         date_time = self.current_datetime
@@ -233,12 +241,12 @@ class Mobility:
 
         before_date = today_date - timedelta(days=1)
         if trip := self.trip(before_date):
-            # 前日の運行が終了していない場合は前日の日付を返す。
+            # If the previous day's operation has not been completed, returns the previous day's date.
             if date_time < trip.end_time(before_date):
                 return before_date
 
         if trip := self.trip(today_date):
-            # 当日の運行が終了している場合は翌日の日付を返す。
+            # If today's operation has been completed, returns the next day's date.
             if trip.end_time(today_date) <= date_time:
                 return date_time.date() + timedelta(days=1)
 

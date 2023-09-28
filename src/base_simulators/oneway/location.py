@@ -10,7 +10,7 @@ from core import Location
 from mobility import Scooter
 
 
-logger = getLogger("owmsim")
+logger = getLogger(__name__)
 
 
 class Dock:
@@ -50,11 +50,11 @@ class Station(Location):
         super().__init__(id_, lat=lat, lng=lng)
         self.name = name
         self.is_charging = is_charging
-        self._docks: typing.Set[Dock] = {
+        self._docks = [
             Dock(mobility) for mobility in mobilities
-        } | {
+        ] + [
             Dock() for _ in range(capacity - len(mobilities))
-        }
+        ]
 
     @property
     def reservable_mobilities(self):

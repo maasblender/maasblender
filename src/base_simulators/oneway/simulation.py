@@ -9,11 +9,11 @@ from collections import defaultdict
 import simpy
 
 from location import Station
-from mobility import Scooter
-from event import Event, ReservedEvent, ReserveFailedEvent, DepartedEvent, ArrivedEvent
-from operation.reduce_fluctuations import Manager, OperatedStation, Operator
+from mobility import Scooter, ScooterParameter
+from event import ReservedEvent, ReserveFailedEvent, DepartedEvent, ArrivedEvent, EventQueue
+from operation.reduce_fluctuations import Manager, OperatedStation, Operator, OperatorParameter
 
-logger = getLogger("owsim")
+logger = getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -32,12 +32,14 @@ class Simulation:
         self.stations: typing.Dict[str, Station] = {}
         self._reservations: typing.Dict[str, Reservation] = {}
 
-    def setup(self, station_information: typing.List[typing.Dict], free_bike_status: typing.List[typing.Dict]):
+    def setup(self, station_information: typing.List[typing.Dict], free_bike_status: typing.List[typing.Dict],
+              scooter_params: ScooterParameter, operator_params: OperatorParameter):
         mobilities: typing.Dict[str, typing.List[Scooter]] = defaultdict(list)
         for bike in free_bike_status:
             mobilities[bike["station_id"]].append(Scooter(
                 env=self.env,
                 id_=bike["bike_id"],
+                params=scooter_params,
                 current_range_meters=bike["current_range_meters"]
             ))
 
@@ -64,10 +66,11 @@ class Simulation:
         self.operation.setup(operated_stations, {
             Operator(
                 env=self.env,
+                queue=self.queue,
+                params=operator_params,
                 location=operated_stations[0],
-                capacity=4
             )
-        })
+        }, operator_params)
 
     def start(self):
         self.env.process(self.operation.run())
@@ -85,13 +88,9 @@ class Simulation:
         return org.any_reservable_mobility and dst.any_reservable_dock
 
     def reserve(self, user_id: str, org: str, dst: str, dept: float):
-        """ 利用者が車両の乗車予約をする。"""
-
         self.env.process(self._reserve(user_id, self.stations[org], self.stations[dst], dept))
 
     def depart(self, user_id: str):
-        """ 利用者が予約した車両を利用して目的地に向けて出発する。"""
-
         self.env.process(self._depart(user_id))
 
     def _reserve(self, user_id: str, org: Station, dst: Station, dept: float):
@@ -114,7 +113,8 @@ class Simulation:
 
     def _depart(self, user_id: str):
         yield self.env.timeout(0)
-        # ToDo: 同一ユーザーが複数の予約をする可能性がある。予約そのものの識別子がベターか。
+        # ToDo: Since the same user may make multiple reservations,
+        #  it is better to use the identifier of the reservation rather than the user ID.
         assert user_id in self._reservations, user_id
         reservation = self._reservations.pop(user_id, None)
 
@@ -133,18 +133,3 @@ class Simulation:
             mobility=reservation.mobility,
             location=reservation.dst
         ))
-
-
-class EventQueue:
-    def __init__(self, env: simpy.Environment):
-        self.env = env
-        self._events: typing.List[typing.Dict] = []
-
-    @property
-    def events(self):
-        events = self._events
-        self._events = []
-        return events
-
-    def enqueue(self, event: Event):
-        self._events.append({"time": self.env.now} | event.dumps())
