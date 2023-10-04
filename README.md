@@ -39,4 +39,9 @@ If you find bugs or want to add some features, please check out the [contributin
 
 Licensed under [Apache-2.0 License](LICENSE).
 
+## Reference
+
+Y. Fujita, M. Kuwahara and E. Ueda, "MaaS Blender: Integration of Mobility Simulators for Mobility as a Service Evaluation," in IEEE Access, vol. 11, pp. 105105-105114, 2023, doi: 10.1109/ACCESS.2023.3319079.
+[Link](https://ieeexplore.ieee.org/document/10262296)
+
 Copyright (c) 2022 TOYOTA MOTOR CORPORATION and MaaS Blender Contributors
