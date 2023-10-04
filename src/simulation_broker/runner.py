@@ -1,43 +1,38 @@
 # SPDX-FileCopyrightText: 2022 TOYOTA MOTOR CORPORATION and MaaS Blender Contributors
 # SPDX-License-Identifier: Apache-2.0
-import typing
 import logging
+import typing
+
 import aiohttp
 
-from engine import Runner
+from common import httputil
+from engine import Runner, Event
 
-logger = logging.getLogger("broker")
+logger = logging.getLogger(__name__)
 
 
 class HttpRunner(Runner):
-    """ モビリティシミュレータコントローラーの汎用的な実装 """
     def __init__(self, name: str, endpoint: str):
         super().__init__(name=name)
         self._endpoint = endpoint
-        self._session = aiohttp.ClientSession(raise_for_status=True)
+        self._session = aiohttp.ClientSession()
 
     async def _get(self, method: str, params: typing.Mapping = None):
-        try:
-            async with self._session.get(
+        async with self._session.get(
                 self._endpoint + "/" + method,
                 params=params if params else {},
-            ) as response:
-                return await response.json()
-        except Exception as ex:
-            logger.error("%s -- HttpRunner(name=%s)._get(%s, %s)", str(ex), self.name, method, params)
-            raise
+        ) as response:
+            await httputil.check_response(response)
+            return await response.json()
 
-    async def _post(self, method: str, data: typing.Mapping = None, params: typing.Mapping = None):
-        try:
-            async with self._session.post(
+    async def _post(self, method: str, data: typing.Any = None, params: typing.Mapping = None):
+        async with self._session.post(
                 self._endpoint + "/" + method,
-                json=data if data else {},
+                json=data,
                 params=params if params else {},
-            ) as response:
-                return await response.json()
-        except Exception as ex:
-            logger.error("%s -- HttpRunner(name=%s)._post(%s, %s, %s)", str(ex), self.name, method, data, params)
-            raise
+        ) as response:
+            await httputil.check_response(response)
+            return await response.json()
 
     async def setup(self, setting: typing.Mapping):
         await self._post("setup", data=setting)
@@ -51,10 +46,10 @@ class HttpRunner(Runner):
 
     async def step(self):
         response = await self._post("step")
-        return response["now"], [event for event in response["events"]]
+        return response["now"], [Event.parse_obj(event) for event in response["events"]]
 
-    async def triggered(self, event: typing.Mapping):
-        await self._post("triggered", data=event)
+    async def triggered(self, event: Event):
+        await self._post("triggered", data=event.dict())
 
     async def finish(self):
         await self._post("finish")

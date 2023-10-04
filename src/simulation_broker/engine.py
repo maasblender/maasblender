@@ -1,35 +1,44 @@
 # SPDX-FileCopyrightText: 2022 TOYOTA MOTOR CORPORATION and MaaS Blender Contributors
 # SPDX-License-Identifier: Apache-2.0
-import typing
-import logging
-import json
 import asyncio
-from functools import reduce
+import logging
+import typing
 
-logger = logging.getLogger("broker")
+from pydantic import BaseModel, Extra
+
+from common.result import ResultWriter
+
+logger = logging.getLogger(__name__)
+
+
+class Event(BaseModel, extra=Extra.allow):
+    eventType: str
+    source: str | None = None
+    time: float
+    service: str | None = None
+    details: typing.Any
 
 
 class Runner:
-    """ イベントコントローラーの基底クラス """
     def __init__(self, name: str):
         self.name = name
 
-    async def setup(self, setting):
+    async def setup(self, setting: typing.Mapping) -> None:
         pass
 
-    async def start(self):
+    async def start(self) -> None:
         pass
 
-    async def peek(self) -> typing.Union[int, float]:
+    async def peek(self) -> int | float:
         raise NotImplementedError()
 
-    async def step(self) -> typing.Tuple[typing.Union[int, float], typing.List[typing.Dict]]:
+    async def step(self) -> tuple[int | float, list[Event]]:
         raise NotImplementedError()
 
-    async def triggered(self, event: typing.Mapping):
+    async def triggered(self, event: Event) -> None:
         raise NotImplementedError()
 
-    async def finish(self):
+    async def finish(self) -> None:
         pass
 
     async def reservable(self, org: str, dst: str) -> bool:
@@ -37,12 +46,9 @@ class Runner:
 
 
 class RunnerEngine:
-    """ エベント駆動エンジン """
-
-    def __init__(self, event_logger: logging.Logger):
-        self._logger = event_logger
-        self._runners: typing.Dict[str, Runner] = {}
-        self.error = False
+    def __init__(self, writer: ResultWriter):
+        self._writer = writer
+        self._runners: dict[str, Runner] = {}
 
     @property
     def runners(self):
@@ -53,44 +59,33 @@ class RunnerEngine:
             self._runners[name] = runner
 
     async def start(self):
-        self.error = False
         for runner in self.runners:
             await runner.start()
 
     async def peek(self):
-        if len([*self.runners]) == 0:
-            logger.error("No runners.")
-            return float('inf')
         return min(await asyncio.gather(*[runner.peek() for runner in self.runners]))
 
-    async def step(self, until: typing.Union[int, float] = None) -> typing.Union[int, float]:
+    async def step(self, until: int | float = None) -> int | float:
         peeks = await asyncio.gather(*[runner.peek() for runner in self.runners])
 
-        # If the next event is after the value of until, returns the scheduled time of it
-        if until and min(peeks) > until:
-            return min(peeks)
-
         # step the simulator with the lowest peek() value
-        runner = reduce(
-            lambda a, b: a if a[1] <= b[1] else b,
-            ((runner, peek) for runner, peek in zip(self.runners, peeks))
-        )[0]
+        runner, min_peek = min(zip(self.runners, peeks), key=lambda e: e[1])
+        # If the next event is after the value of until, returns the scheduled time of it
+        if until and min_peek > until:
+            return min_peek
+
         now, events = await runner.step()
 
         for event in events:
-            event = event | {
-                "time": now,
-                "source": runner.name
-            }
-            self._logger.info(json.dumps(event, ensure_ascii=False))
+            event.source = runner.name
+            await self._writer.write_json(event.dict(exclude_none=True))
 
             # sync triggered events with the other runners
-            if service := event.get("service"):
+            if service := event.service:
                 await self._runners[service].triggered(event)
             else:
                 for each in self.runners:
                     await each.triggered(event)
-
         return now
 
     async def finish(self):
@@ -101,6 +96,5 @@ class RunnerEngine:
         if runner := self._runners.get(service, None):
             return await runner.reservable(org, dst)
         else:
-            logger.error(f"service: {service} was not found.")
-            raise RuntimeError(f"service: {service} was not found.")
-
+            msg = f"service: {service} was not found. (services: {list(self._runners.keys())})"
+            raise KeyError(msg)

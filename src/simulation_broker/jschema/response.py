@@ -13,6 +13,7 @@ class Message(BaseModel):
 
 class Peek(Status):
     next: float
+    running: bool
 
 
 class Step(Status):

@@ -10,12 +10,12 @@ import typing
 
 import aiohttp
 
-logger = logging.getLogger("broker")
+from common import httputil
+
+logger = logging.getLogger(__name__)
 
 
 class AsyncHttpSeqnoHandler(logging.Handler):
-    """HttpSeqnoHandler の非同期処理版"""
-
     _instances: list[AsyncHttpSeqnoHandler] = []
     _url: str
     _session: aiohttp.ClientSession
@@ -43,7 +43,7 @@ class AsyncHttpSeqnoHandler(logging.Handler):
     def __init__(self, url: str):
         super().__init__()
         self._url = url
-        self._session = aiohttp.ClientSession(raise_for_status=True)
+        self._session = aiohttp.ClientSession()
         self._count = itertools.count()
         self._records = asyncio.Queue()
         self._task = None
@@ -77,6 +77,7 @@ class AsyncHttpSeqnoHandler(logging.Handler):
 
     async def _post(self, data: list[typing.Mapping]):
         async with self._session.post(url=self._url, json=data) as response:
+            await httputil.check_response(response)
             return await response.json()
 
     async def _send_records(self, nowait=False):
@@ -88,10 +89,10 @@ class AsyncHttpSeqnoHandler(logging.Handler):
             await self._post(data=data)
 
     async def _polling(self):
-        """キューを監視して随時ログ出力"""
+        """ Monitor the queue and log output immediately. """
         while not self._closed:
             await self._send_records()
-        # close() 後にキューが空になるまで処理
+        # until the queue is empty after close()
         if not self._records.empty():
             logger.info("remaining qsize: %s", self._records.qsize())
             await self._send_records(nowait=True)
