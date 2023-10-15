@@ -16,7 +16,9 @@ class InputFilesItem(BaseModel):
     filename: str | None = None
     fetch_url: AnyHttpUrl | None = None
 
-    @root_validator
+    # ToDo: `@root_validator` are deprecated.
+    # And, `skip_on_failure` must be `True`
+    @root_validator(skip_on_failure=True)
     def check_exist_either(cls, values):
         if values.get("filename") or values.get("fetch_url"):
             return values
