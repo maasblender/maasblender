@@ -5,11 +5,11 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 from logging import getLogger
 
-from environment import Environment
-from core import Network, User, Trip
-from event import EventQueue
-from mobility import CarManager, CarSetting
-from jschema.query import Mobility
+from .environment import Environment
+from .core import Network, User, Trip
+from .event import EventQueue
+from .mobility import CarManager, CarSetting
+from .jschema.query import Mobility
 
 logger = getLogger(__name__)
 

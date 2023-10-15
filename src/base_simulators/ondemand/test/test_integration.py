@@ -4,14 +4,9 @@ import unittest
 import logging
 from datetime import datetime, date, time, timedelta
 
-import os, sys 
-module_path = os.path.abspath(os.path.join(f'{os.path.dirname(__file__)}/..'))
-if module_path not in sys.path:
-    sys.path.append(module_path)
-
-from simulation import Simulation
-from core import EventType, Stop, StopTime, Service, Trip, Group, Network
-from jschema.query import Mobility
+from ..simulation import Simulation
+from ..core import EventType, Stop, StopTime, Service, Trip, Group, Network
+from ..jschema.query import Mobility
 
 logger = logging.getLogger(__name__)
 
@@ -1632,6 +1627,7 @@ class TwoMobilityTestCase(unittest.TestCase):
                 'location': {"locationId": "Stop1", "lat": ..., "lng": ...},
             }
         }], triggered_events)
+
 
 if __name__ == '__main__':
     unittest.main()

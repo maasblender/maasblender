@@ -3,8 +3,8 @@
 import unittest
 import datetime
 
-from core import Stop, Group, StopTime, Service, Trip
-from gtfs import GtfsFlexFilesReader
+from ..core import Stop, Group, StopTime, Service, Trip
+from ..gtfs import GtfsFlexFilesReader
 
 
 class ReadFlexTestCase(unittest.TestCase):

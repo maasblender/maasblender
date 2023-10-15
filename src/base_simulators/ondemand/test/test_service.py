@@ -4,7 +4,7 @@ import unittest
 import logging
 from datetime import date
 
-from core import Service
+from ..core import Service
 
 logger = logging.getLogger(__name__)
 

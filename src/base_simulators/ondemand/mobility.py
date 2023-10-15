@@ -10,8 +10,8 @@ from datetime import datetime, timedelta
 import itertools
 import functools
 
-from core import Trip, Stop, Network, User, Mobility
-from event import EventQueue
+from .core import Trip, Stop, Network, User, Mobility
+from .event import EventQueue
 
 
 logger = logging.getLogger(__name__)
@@ -95,7 +95,6 @@ class Car(Mobility):
         self._passengers: typing.Dict[str, User] = {}
         _, end_window = self.window()
         self.env.process(self._move_to_initial_stop(end_window)) # move to initial stop at end_window
-
 
     def __str__(self):
         reserved = [e.user_id for e in self._reserved_users.values()]

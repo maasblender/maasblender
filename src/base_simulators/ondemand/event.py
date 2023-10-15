@@ -3,8 +3,8 @@
 import datetime
 import typing
 
-from core import EventType, Mobility, User
-from environment import Environment
+from .core import EventType, Mobility, User
+from .environment import Environment
 
 
 class TriggerEvent:

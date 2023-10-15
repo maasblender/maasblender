@@ -5,9 +5,9 @@ from datetime import datetime, timedelta
 from unittest import TestCase
 from unittest.mock import Mock
 
-from core import User, Stop, Group, Trip, Service, StopTime as flex_StopTime, Network
-from environment import Environment
-from mobility import Car, Route, StopTime, Delay, CarManager, CarSetting
+from ..core import User, Stop, Group, Trip, Service, StopTime as flex_StopTime, Network
+from ..environment import Environment
+from ..mobility import Car, Route, StopTime, Delay, CarManager, CarSetting
 
 base_datetime = datetime(year=2022, month=1, day=1)
 stops = [

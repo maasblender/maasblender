@@ -10,11 +10,11 @@ import fastapi
 
 import httputil
 import jschema.events
-from config import env
-from core import Network
-from gtfs import GtfsFlexFilesReader
-from jschema import query, response
-from simulation import Simulation
+from .config import env
+from .core import Network
+from .gtfs import GtfsFlexFilesReader
+from .jschema import query, response
+from .simulation import Simulation
 
 logger = logging.getLogger(__name__)
 app = fastapi.FastAPI(

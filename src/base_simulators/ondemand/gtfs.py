@@ -7,7 +7,7 @@ import io
 import zipfile
 import re
 
-from core import Stop, Group, StopTime, Service, Trip
+from .core import Stop, Group, StopTime, Service, Trip
 
 
 p = re.compile(r"(\d\d?):(\d\d?):(\d\d?)")

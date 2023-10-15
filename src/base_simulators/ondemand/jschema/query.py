@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 from pydantic import BaseModel, Field, AnyHttpUrl, root_validator, constr
 
-from jschema.events import ReserveEvent, DepartEvent, Event as OtherEvent
+from .events import ReserveEvent, DepartEvent, Event as OtherEvent
 
 
 class Mobility(BaseModel):
