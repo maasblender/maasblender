@@ -101,9 +101,7 @@ class OpenTripPlanner:
                     params={
                         "mode": 'CAR',
                         "fromPlace": org_id,
-                        # "fromPlace": f"{org.lng},{org.lng}",
                         "toPlace": dst_id,
-                        # "toPlace": f"{dst.lng},{dst.lng}",
                         "time": f"{base.time()}",
                         "date": f"{base.date()}",
                     },
