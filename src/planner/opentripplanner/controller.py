@@ -244,10 +244,8 @@ async def planner_up(interval: float):
 
 
 @app.post("/matrix", response_model=response.DistanceMatrix)
-async def meters_for_all_stops_combinations(stops: list[query.LocationSetting]):
-    return await planner.meters_for_all_stops_combinations([
-        Location(e.locationId, e.lat, e.lng) for e in stops
-    ], planner.ref_datetime)
+async def meters_for_all_stops_combinations(stops: list[str]):
+    return await planner.meters_for_all_stops_combinations(stops, planner.ref_datetime)
 
 
 @app.post("/plan", response_model=list[Path])

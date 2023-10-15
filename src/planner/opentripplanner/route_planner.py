@@ -78,16 +78,16 @@ class OpenTripPlanner:
         except aiohttp.ClientConnectionError:
             return False
 
-    async def meters_for_all_stops_combinations(self, stops: list[Location], base: datetime.datetime):
+    async def meters_for_all_stops_combinations(self, stops: list[str], base: datetime.datetime):
         failed_stops = set()
         stop_id_map = {
             get_id_from_dict(e, "id"): e["id"]
             for e in await self.client.get(method="otp/routers/default/index/stops")
         }
 
-        async def _distance(org: Location, dst: Location):
-            org_id = stop_id_map.get(org.id_)
-            dst_id = stop_id_map.get(dst.id_)
+        async def _distance(org: str, dst: str):
+            org_id = stop_id_map.get(org)
+            dst_id = stop_id_map.get(dst)
             if org_id is None or dst_id is None:
                 return -1
             if org_id == dst_id:
@@ -118,8 +118,8 @@ class OpenTripPlanner:
                     raise ValueError("illegal response from OTP, distance = %s", distance)
                 return distance
             except Exception as e:
-                logger.warning(f"failed to calculate the distance between {org.id_} and {dst.id_}. Error: {e}.")
-                failed_stops.add(dst.id_)
+                logger.warning(f"failed to calculate the distance between {org} and {dst}. Error: {e}.")
+                failed_stops.add(dst)
                 return -1
 
         matrix: list[list[float]] = []
@@ -129,7 +129,7 @@ class OpenTripPlanner:
                 for stop_b in stops
             ])
             matrix.append(list(vals))
-        return DistanceMatrix(stops=[stop.id_ for stop in stops], matrix=matrix)
+        return DistanceMatrix(stops=stops, matrix=matrix)
 
     async def plan(self, org: Location, dst: Location, dept: float) -> list[Path]:
         paths: list[Path] = []
