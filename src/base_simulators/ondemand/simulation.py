@@ -1,7 +1,6 @@
 # SPDX-FileCopyrightText: 2022 TOYOTA MOTOR CORPORATION and MaaS Blender Contributors
 # SPDX-License-Identifier: Apache-2.0
-from __future__ import annotations
-
+import typing
 from datetime import datetime, timedelta
 from logging import getLogger
 
@@ -9,7 +8,6 @@ from .environment import Environment
 from .core import Network, User, Trip
 from .event import EventQueue
 from .mobility import CarManager, CarSetting
-from .jschema.query import Mobility
 
 logger = getLogger(__name__)
 
@@ -17,9 +15,7 @@ logger = getLogger(__name__)
 class Simulation:
     def __init__(self, start_time: datetime, network: Network,
                  board_time: float, max_delay_time: float,
-                 trips: dict[str, Trip], settings: dict[str, Mobility]):
-        assert {e.trip_id for e in settings.values()} <= trips.keys(), \
-            f"{{e.trip_id for e in settings.values()}} must include in {trips.keys()}"
+                 trips: dict[str, Trip], settings: typing.Collection[CarSetting]):
         self.env = Environment(start_time=start_time)
         self.event_queue = EventQueue(self.env)
         self.network = network
@@ -34,14 +30,7 @@ class Simulation:
             event_queue=self.event_queue,
             board_time=board_time,
             max_delay_time=max_delay_time,
-            settings=[
-                CarSetting(
-                    mobility_id=mobility_id,
-                    capacity=mobility.capacity,
-                    trip=trips[mobility.trip_id],
-                    stop=self.stops[mobility.stop]
-                ) for mobility_id, mobility in settings.items()
-            ]
+            settings=settings
         )
 
     def start(self):

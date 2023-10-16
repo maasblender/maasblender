@@ -14,7 +14,7 @@ from .config import env
 from .core import Network
 from .gtfs import GtfsFlexFilesReader
 from .jschema import query, response
-from .simulation import Simulation
+from .simulation import Simulation, CarSetting
 
 logger = logging.getLogger(__name__)
 app = fastapi.FastAPI(
@@ -106,7 +106,14 @@ async def setup(settings: query.Setup):
         trips=trips,
         board_time=settings.board_time,
         max_delay_time=settings.max_delay_time,
-        settings={mobility.mobility_id: mobility for mobility in settings.mobilities},
+        settings=[
+            CarSetting(
+                mobility_id=mobility.mobility_id,
+                capacity=mobility.capacity,
+                trip=trips[mobility.trip_id],
+                stop=stops[mobility.stop]
+            ) for mobility in settings.mobilities
+        ],
     )
 
     return {

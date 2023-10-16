@@ -4,9 +4,8 @@ import unittest
 import logging
 from datetime import datetime, date, time, timedelta
 
-from ..simulation import Simulation
+from ..simulation import Simulation, CarSetting
 from ..core import EventType, Stop, StopTime, Service, Trip, Group, Network
-from ..jschema.query import Mobility
 
 logger = logging.getLogger(__name__)
 
@@ -34,39 +33,38 @@ class OneMobilityTestCase(unittest.TestCase):
         self.network.add_edge(self.stop1.stop_id, self.stop2.stop_id, 30, with_rev=True)
         self.network.add_edge(self.stop1.stop_id, self.stop3.stop_id, 15, with_rev=True)
         self.network.add_edge(self.stop2.stop_id, self.stop3.stop_id, 20, with_rev=True)
+        self.trip = Trip(
+            service=Service(
+                start_date=self.base_datetime.date(),
+                end_date=self.base_datetime.date() + timedelta(days=1),
+                monday=True, tuesday=True, wednesday=True, thursday=True, friday=True,
+                saturday=True, sunday=True
+            ),
+            stop_time=StopTime(
+                group=Group(
+                    group_id=...,
+                    name=...,
+                    locations=[stop for stop in self.stops.values()]
+                ),
+                start_window=timedelta(hours=1),
+                end_window=timedelta(hours=23),
+            )
+        )
 
         self.simulation = Simulation(
             start_time=self.base_datetime,
             board_time=10,
             max_delay_time=30,
             network=self.network,
-            trips={
-                "trip": Trip(
-                    service=Service(
-                        start_date=self.base_datetime.date(),
-                        end_date=self.base_datetime.date() + timedelta(days=1),
-                        monday=True, tuesday=True, wednesday=True, thursday=True, friday=True,
-                        saturday=True, sunday=True
-                    ),
-                    stop_time=StopTime(
-                        group=Group(
-                            group_id=...,
-                            name=...,
-                            locations=[stop for stop in self.stops.values()]
-                        ),
-                        start_window=timedelta(hours=1),
-                        end_window=timedelta(hours=23),
-                    )
-                )
-            },
-            settings={
-                "trip": Mobility(
+            trips={"trip": self.trip},
+            settings=[
+                CarSetting(
                     mobility_id="trip",
-                    trip_id="trip",
+                    trip=self.trip,
                     capacity=2,
-                    stop=self.stops["Stop1"].stop_id
+                    stop=self.stops["Stop1"]
                 )
-            }
+            ]
         )
         self.simulation.start()
 
@@ -1486,6 +1484,40 @@ class TwoMobilityTestCase(unittest.TestCase):
         self.network.add_edge(self.stop1.stop_id, self.stop2.stop_id, 30, with_rev=True)
         self.network.add_edge(self.stop1.stop_id, self.stop3.stop_id, 40, with_rev=True)
         self.network.add_edge(self.stop2.stop_id, self.stop3.stop_id, 50, with_rev=True)
+        self.trip1 = Trip(
+            service=Service(
+                start_date=self.base_datetime.date(),
+                end_date=self.base_datetime.date() + timedelta(days=1),
+                monday=True, tuesday=True, wednesday=True, thursday=True, friday=True,
+                saturday=True, sunday=True
+            ),
+            stop_time=StopTime(
+                group=Group(
+                    group_id=...,
+                    name=...,
+                    locations=[stop for stop in self.stops.values()]
+                ),
+                start_window=timedelta(hours=1),
+                end_window=timedelta(hours=23),
+            )
+        )
+        self.trip2 = Trip(
+            service=Service(
+                start_date=self.base_datetime.date(),
+                end_date=self.base_datetime.date() + timedelta(days=1),
+                monday=True, tuesday=True, wednesday=True, thursday=True, friday=True,
+                saturday=True, sunday=True
+            ),
+            stop_time=StopTime(
+                group=Group(
+                    group_id=...,
+                    name=...,
+                    locations=[stop for stop in self.stops.values()]
+                ),
+                start_window=timedelta(hours=1),
+                end_window=timedelta(hours=23),
+            )
+        )
 
         self.simulation = Simulation(
             start_time=self.base_datetime,
@@ -1493,55 +1525,23 @@ class TwoMobilityTestCase(unittest.TestCase):
             board_time=10,
             max_delay_time=30,
             trips={
-                "trip1": Trip(
-                    service=Service(
-                        start_date=self.base_datetime.date(),
-                        end_date=self.base_datetime.date() + timedelta(days=1),
-                        monday=True, tuesday=True, wednesday=True, thursday=True, friday=True,
-                        saturday=True, sunday=True
-                    ),
-                    stop_time=StopTime(
-                        group=Group(
-                            group_id=...,
-                            name=...,
-                            locations=[stop for stop in self.stops.values()]
-                        ),
-                        start_window=timedelta(hours=1),
-                        end_window=timedelta(hours=23),
-                    )
-                ),
-                "trip2": Trip(
-                    service=Service(
-                        start_date=self.base_datetime.date(),
-                        end_date=self.base_datetime.date() + timedelta(days=1),
-                        monday=True, tuesday=True, wednesday=True, thursday=True, friday=True,
-                        saturday=True, sunday=True
-                    ),
-                    stop_time=StopTime(
-                        group=Group(
-                            group_id=...,
-                            name=...,
-                            locations=[stop for stop in self.stops.values()]
-                        ),
-                        start_window=timedelta(hours=1),
-                        end_window=timedelta(hours=23),
-                    )
-                )
+                "trip1": self.trip1,
+                "trip2": self.trip2
             },
-            settings={
-                "trip1": Mobility(
+            settings=[
+                CarSetting(
                     mobility_id="trip1",
-                    trip_id="trip1",
+                    trip=self.trip1,
                     capacity=1,
-                    stop=self.stops["Stop1"].stop_id
+                    stop=self.stops["Stop1"]
                 ),
-                "trip2": Mobility(
+                CarSetting(
                     mobility_id="trip2",
-                    trip_id="trip2",
+                    trip=self.trip2,
                     capacity=1,
-                    stop=self.stops["Stop2"].stop_id
+                    stop=self.stops["Stop2"]
                 )
-            }
+            ]
         )
         self.simulation.start()
 
