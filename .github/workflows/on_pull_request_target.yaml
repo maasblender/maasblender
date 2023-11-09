@@ -3,7 +3,8 @@ on:
     types: [opened, ready_for_review]
 
 jobs:
-  auto_merge_and_request_review:
+  assign_pull_request_user_and_auto_merge:
+    if: ${{ github.event.pull_request.draft == false }}
     runs-on: ubuntu-22.04
     timeout-minutes: 1
     env:
@@ -11,7 +12,6 @@ jobs:
         GH_REPO: ${{ github.repository }}
         NUMBER: ${{ github.event.pull_request.number }}
     steps:
-      - run: cat $GITHUB_EVENT_PATH
       - name: Assign pull request user
         run: gh pr edit $NUMBER --add-assignee $ASSIGNEE
         env:
@@ -19,4 +19,3 @@ jobs:
         if: ${{ github.event.pull_request.user.type != 'Bot' && toJSON(github.event.pull_request.assignees) == '[]' }}
       - name: Enable auto-merge
         run: gh pr merge $NUMBER --merge --auto
-        
