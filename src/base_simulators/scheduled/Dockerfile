@@ -5,17 +5,15 @@ RUN apt-get update && apt-get install -y \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-USER nobody
-
-WORKDIR /app
-
 COPY requirements.txt ./
 ENV PIP_ROOT_USER_ACTION=ignore
 RUN pip install --upgrade pip \
  && pip install --upgrade setuptools \
  && pip install -r requirements.txt
 
+USER nobody
 
+WORKDIR /app
 COPY . .
 
 ENTRYPOINT ["uvicorn", "controller:app"]
