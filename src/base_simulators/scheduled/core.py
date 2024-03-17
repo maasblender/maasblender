@@ -133,43 +133,6 @@ class Service:
 
 
 @dataclasses.dataclass(frozen=True)
-class Trip:
-    """Sequence of two or more stops that occur during a specific time period."""
-
-    route: Route
-    service: Service
-    stop_times: typing.List[StopTime]
-
-    def __post_init__(self):
-        assert len(self.stop_times) >= 2
-
-    def stop_times_at(self, at_date: date):
-        return [
-            StopTimeWithDateTime(stop_time=stop_time, reference_date=at_date)
-            for stop_time in self.stop_times
-        ]
-
-    def start_time(self, at: date):
-        return list(self.stop_times_at(at))[0].arrival
-
-    def end_time(self, at: date):
-        return list(self.stop_times_at(at))[-1].departure
-
-    def paths(self, org: Stop, dst: Stop, at: date):
-        if not self.service.is_operation(at):
-            return
-
-        for stop_time_org in self.stop_times_at(at):
-            if stop_time_org.stop == org:
-                for stop_time_dst in self.stop_times_at(at):
-                    if (
-                        stop_time_dst.stop == dst
-                        and stop_time_org.departure < stop_time_dst.arrival
-                    ):
-                        yield Path(pick_up=stop_time_org, drop_off=stop_time_dst)
-
-
-@dataclasses.dataclass(frozen=True)
 class Path:
     pick_up: StopTimeWithDateTime
     drop_off: StopTimeWithDateTime
@@ -202,6 +165,29 @@ class Path:
     @property
     def arrival(self):
         return self.drop_off.arrival
+
+
+class Trip:
+    """Sequence of two or more stops during a specific time period using a vehicle"""
+
+    @property
+    def stops(self) -> typing.List[Stop]:
+        raise NotImplementedError()
+
+    def is_operation(self, at_date: date) -> bool:
+        raise NotImplementedError()
+
+    def stop_times_at(self, at_date: date) -> typing.List[StopTimeWithDateTime]:
+        raise NotImplementedError()
+
+    def start_time(self, at: date) -> datetime:
+        raise NotImplementedError()
+
+    def end_time(self, at: date) -> datetime:
+        raise NotImplementedError()
+
+    def paths(self, org: Stop, dst: Stop, at: date) -> typing.Generator[Path, typing.Any, None]:
+        raise NotImplementedError()
 
 
 @dataclasses.dataclass
@@ -242,7 +228,7 @@ class Mobility:
         if at is None:
             at = self.operation_date
 
-        return self._trip if self._trip.service.is_operation(at) else None
+        return self._trip if self._trip.is_operation(at) else None
 
     @property
     def operation_date(self):

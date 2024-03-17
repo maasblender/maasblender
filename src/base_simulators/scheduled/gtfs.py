@@ -8,7 +8,8 @@ import io
 import zipfile
 import re
 
-from core import Agency, Stop, Route, StopTime, Service, Trip
+from core import Agency, Stop, Route, StopTime, Service
+from trip import SingleTrip
 
 p = re.compile(r"(\d\d?):(\d\d?):(\d\d?)")
 
@@ -84,7 +85,8 @@ class GtfsFilesReader:
             collections.defaultdict(list)
         )
         self._services: typing.Dict[str, Service] = {}
-        self.trips: typing.Dict[str, Trip] = {}
+        self.trips: typing.Dict[str, SingleTrip] = {}
+        self.blocks: typing.Dict[str, typing.List[SingleTrip]] = collections.defaultdict(list)
 
         with archive.open("agency.txt") as f:
             for k, v in GtfsReader(f, parse_agency):
@@ -114,7 +116,10 @@ class GtfsFilesReader:
 
         with archive.open("trips.txt") as f:
             for k, v in GtfsReader(f, self.parse_trip):
-                self.trips.update({k: v})
+                if block_id := v.block_id:
+                    self.blocks[block_id].append(v)
+                else:
+                    self.trips.update({k: v})
 
     def parse_route(self, row: typing.Dict[str, str]):
         return row["route_id"], Route(
@@ -134,8 +139,9 @@ class GtfsFilesReader:
         )
 
     def parse_trip(self, row: typing.Dict[str, str]):
-        return row["trip_id"], Trip(
+        return row["trip_id"], SingleTrip(
             route=self._routes[row["route_id"]],
             service=self._services[row["service_id"]],
             stop_times=self._stop_times[row["trip_id"]],
+            block_id=row["block_id"],
         )

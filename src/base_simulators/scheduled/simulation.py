@@ -16,7 +16,10 @@ logger = getLogger(__name__)
 
 class Simulation:
     def __init__(
-        self, start_time: datetime, capacity: int, trips: typing.Dict[str, Trip]
+        self,
+        start_time: datetime,
+        capacity: int,
+        trips: typing.Dict[str, Trip],
     ) -> None:
         self.env = Environment(start_time=start_time)
         self.event_queue = EventQueue()
@@ -33,9 +36,9 @@ class Simulation:
             ],
         )
         self.stops = {
-            stop_time.stop.stop_id: stop_time.stop
+            stop.stop_id: stop
             for trip in trips.values()
-            for stop_time in trip.stop_times
+            for stop in trip.stops
         }
 
     def start(self):
