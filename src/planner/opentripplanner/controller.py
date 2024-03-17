@@ -241,7 +241,7 @@ async def setup(request: fastapi.Request, setting: query.Setup):
         "java",
         "-Xmx5G",
         "-jar",
-        "/root/otp/otp-2.2.0-shaded.jar",
+        "/root/otp/otp-shaded.jar",
         "--build",
         "--port",
         str(env.OPENTRIPPLANNER_PORT),

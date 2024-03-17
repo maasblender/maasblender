@@ -3,7 +3,7 @@ USER root
 RUN apt-get -y update \
  && apt-get install -y python3-pip wget \
  && mkdir /root/otp \
- && wget "https://repo1.maven.org/maven2/org/opentripplanner/otp/2.2.0/otp-2.2.0-shaded.jar" -P /root/otp/
+ && wget "https://repo1.maven.org/maven2/org/opentripplanner/otp/2.4.0/otp-2.4.0-shaded.jar" -O /root/otp/otp-shaded.jar
 
 WORKDIR /home
 COPY requirements.txt ./
