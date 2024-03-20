@@ -80,9 +80,9 @@ class GtfsFilesReader:
         self._agencies: typing.Dict[str, Agency] = {}
         self.stops: typing.Dict[str, Stop] = {}
         self._routes: typing.Dict[str, Route] = {}
-        self._stop_times: typing.Dict[
-            str, typing.List[StopTime]
-        ] = collections.defaultdict(list)
+        self._stop_times: typing.Dict[str, typing.List[StopTime]] = (
+            collections.defaultdict(list)
+        )
         self._services: typing.Dict[str, Service] = {}
         self.trips: typing.Dict[str, Trip] = {}
 

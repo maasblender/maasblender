@@ -69,9 +69,9 @@ def parse_calendar_dates(row: typing.Dict[str, str]):
 class FilesReader:
     def __init__(self, archive: zipfile.ZipFile):
         self.stops: typing.Dict[str, Location] = {}
-        self._stop_times: typing.Dict[
-            str, typing.List[StopTime]
-        ] = collections.defaultdict(list)
+        self._stop_times: typing.Dict[str, typing.List[StopTime]] = (
+            collections.defaultdict(list)
+        )
         self._services: typing.Dict[str, Service] = {}
         self.trips: typing.Dict[str, Trip] = {}
 
