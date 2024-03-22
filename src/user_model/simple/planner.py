@@ -8,7 +8,7 @@ from core import Location, Route, Trip
 
 class Planner:
     def __init__(self, endpoint: str):
-        self.endpoint = endpoint
+        self.endpoint: str = endpoint
         self._session = aiohttp.ClientSession()
 
     async def close(self):
@@ -16,6 +16,7 @@ class Planner:
 
     async def plan(self, org: Location, dst: Location, dept: float) -> list[Route]:
         response = self.query(org, dst, dept)
+        print(type(self.endpoint))
         return [
             Route(
                 [
