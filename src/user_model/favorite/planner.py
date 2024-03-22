@@ -43,7 +43,7 @@ class Planner:
 
     async def query(self, org: Location, dst: Location, dept: float):
         async with self._session.post(
-            url=self.endpoint,
+            url=self.endpoint.unicode_string(),
             params={"dept": dept},
             json={
                 "org": {"locationId": org.location_id, "lat": org.lat, "lng": org.lng},
