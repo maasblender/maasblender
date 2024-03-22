@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 import math
 
-from pydantic import BaseModel, AnyHttpUrl, root_validator
+from pydantic import BaseModel, AnyHttpUrl, model_validator
 from enum import Enum
 
 from jschema.events import (
@@ -33,12 +33,10 @@ class InputFilesItem(BaseModel):
     filename: str | None = None
     fetch_url: AnyHttpUrl | None = None
 
-    # ToDo: `@root_validator` are deprecated.
-    # And, `skip_on_failure` must be `True`
-    @root_validator(skip_on_failure=True)
-    def check_exist_either(cls, values):
-        if values.get("filename") or values.get("fetch_url"):
-            return values
+    @model_validator(mode="after")
+    def check_exist_either(self):
+        if self.filename or self.fetch_url:
+            return self
         raise ValueError("specified neither filename nor fetch_url")
 
 

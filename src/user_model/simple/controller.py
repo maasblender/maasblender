@@ -63,7 +63,7 @@ async def setup(settings: query.Setup):
     global manager
 
     manager = UserManager(confirmed_services=settings.confirmed_services)
-    manager.setup_planer(endpoint=settings.planner.endpoint)
+    manager.setup_planner(endpoint=settings.planner.endpoint)
 
     return {"message": "successfully configured."}
 

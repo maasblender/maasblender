@@ -91,7 +91,7 @@ async def setup(settings: query.Setup):
         logger.warning("user.userTypes setting is not defined")
         user_params = {user["userId"]: None for user in users}
     manager = UserManager(user_params, confirmed_services=settings.confirmed_services)
-    manager.setup_planer(endpoint=settings.planner.endpoint)
+    manager.setup_planner(endpoint=settings.planner.endpoint)
 
     return {"message": "successfully configured."}
 

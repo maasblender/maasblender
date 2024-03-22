@@ -14,9 +14,9 @@ class InputFilesItem(BaseModel):
     fetch_url: AnyHttpUrl | None = None
 
     @model_validator(mode="after")
-    def check_exist_either(cls, values):
-        if values.get("filename") or values.get("fetch_url"):
-            return values
+    def check_exist_either(self):
+        if self.filename or self.fetch_url:
+            return self
         raise ValueError("specified neither filename nor fetch_url")
 
 

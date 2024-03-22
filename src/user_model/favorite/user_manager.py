@@ -366,7 +366,7 @@ class UserManager(Runner):
         events = self._event_manager.dequeue()
         return events
 
-    def setup_planer(self, endpoint: str):
+    def setup_planner(self, endpoint: str):
         self.route_planner = Planner(endpoint=endpoint)
 
     async def demand(
