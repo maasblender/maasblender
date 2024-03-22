@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: 2022 TOYOTA MOTOR CORPORATION and MaaS Blender Contributors
 # SPDX-License-Identifier: Apache-2.0
-from pydantic import BaseModel, Field, AnyHttpUrl, root_validator, constr
+from pydantic import BaseModel, Field, AnyHttpUrl, model_validator, constr
 
 from .events import ReserveEvent, DepartEvent, Event as OtherEvent
 
@@ -16,9 +16,7 @@ class InputFilesItem(BaseModel):
     filename: str | None = None
     fetch_url: AnyHttpUrl | None = None
 
-    # ToDo: `@root_validator` are deprecated.
-    # And, `skip_on_failure` must be `True`
-    @root_validator(skip_on_failure=True)
+    @model_validator(mode="after")
     def check_exist_either(cls, values):
         if values.get("filename") or values.get("fetch_url"):
             return values

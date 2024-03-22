@@ -7,7 +7,7 @@ from jschema.events import ReserveEvent, DepartEvent, Event as OtherEvent
 
 
 class Setup(BaseModel):
-    walking_meters_per_minute = 80.0  # (m/min)
+    walking_meters_per_minute: float = 80.0  # (m/min)
 
 
 # Note: OtherEvent must be described at the end

@@ -14,6 +14,7 @@ RUN pip install --upgrade pip \
 USER nobody
 
 WORKDIR /app
+
 COPY . .
 
 ENTRYPOINT ["uvicorn", "controller:app"]

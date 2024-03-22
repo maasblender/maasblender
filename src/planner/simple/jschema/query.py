@@ -4,7 +4,7 @@ import typing
 from enum import Enum
 import datetime
 
-from pydantic import BaseModel, AnyHttpUrl, root_validator, conlist, constr
+from pydantic import BaseModel, AnyHttpUrl, model_validator, conlist, constr
 
 
 class LocationSetting(BaseModel):
@@ -17,7 +17,7 @@ class InputFilesItem(BaseModel):
     filename: str | None = None
     fetch_url: AnyHttpUrl | None = None
 
-    @root_validator
+    @model_validator(mode="after")
     def check_exist_either(cls, values):
         if values.get("filename") or values.get("fetch_url"):
             return values
@@ -33,31 +33,31 @@ class ServiceFileType(str, Enum):
 
 class NetworkSetting(BaseModel):
     type: ServiceFileType
-    input_files: conlist(InputFilesItem, min_items=1, max_items=1)
+    input_files: conlist(InputFilesItem, min_length=1, max_length=1)
 
 
 class GbfsNetworkSetting(BaseModel):
     type: typing.Literal[ServiceFileType.GBFS]
-    input_files: conlist(InputFilesItem, min_items=1, max_items=1)
+    input_files: conlist(InputFilesItem, min_length=1, max_length=1)
     mobility_meters_per_minute: float
 
 
 class GtfsNetworkSetting(BaseModel):
     type: typing.Literal[ServiceFileType.GTFS]
-    input_files: conlist(InputFilesItem, min_items=1, max_items=1)
+    input_files: conlist(InputFilesItem, min_length=1, max_length=1)
     max_waiting_time: float = 0
 
 
 class GtfsFlexNetworkSetting(BaseModel):
     type: typing.Literal[ServiceFileType.GTFS_FLEX]
-    input_files: conlist(InputFilesItem, min_items=1, max_items=1)
+    input_files: conlist(InputFilesItem, min_length=1, max_length=1)
     mobility_meters_per_minute: float
     expected_waiting_time: float
 
 
 class MaaSSimNetworkSetting(BaseModel):
     type: typing.Literal[ServiceFileType.MAASSIM]
-    input_files: conlist(InputFilesItem, min_items=1, max_items=1)
+    input_files: conlist(InputFilesItem, min_length=1, max_length=1)
     mobility_meters_per_minute: float
     expected_waiting_time: float
     start_window: datetime.time
