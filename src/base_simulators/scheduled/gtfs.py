@@ -145,5 +145,5 @@ class GtfsFilesReader:
             route=self._routes[row["route_id"]],
             service=self._services[row["service_id"]],
             stop_times=self._stop_times[row["trip_id"]],
-            block_id=row["block_id"],
+            block_id=row.get("block_id", None),
         )
