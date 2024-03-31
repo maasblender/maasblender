@@ -5,7 +5,8 @@ import logging
 from datetime import datetime, date, time, timedelta
 
 from simulation import Simulation
-from core import EventType, Stop, StopTime, Service, Trip
+from core import EventType, Stop, StopTime, Service
+from trip import SingleTrip, BlockTrip
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +38,7 @@ gtfs_stations = {
 }
 
 
-class SimpleTestCase(unittest.TestCase):
+class SingleTripTestCase(unittest.TestCase):
     def setUp(self) -> None:
         self.stops = gtfs_stations
         self.mobility_id = "mobility"
@@ -46,7 +47,7 @@ class SimpleTestCase(unittest.TestCase):
             start_time=datetime.combine(date.today(), time()),
             capacity=20,
             trips={
-                self.mobility_id: Trip(
+                self.mobility_id: SingleTrip(
                     route=...,
                     service=Service(
                         start_date=date.today(),
@@ -212,6 +213,240 @@ class SimpleTestCase(unittest.TestCase):
             {
                 "eventType": EventType.ARRIVED,
                 "time": 574.0,
+                "details": {
+                    "userId": user["user_id"],
+                    "mobilityId": self.mobility_id,
+                    "location": {
+                        "locationId": self.stops[user["dst"]].stop_id,
+                        "lat": self.stops[user["dst"]].lat,
+                        "lng": self.stops[user["dst"]].lng,
+                    },
+                },
+            },
+        ]
+        self.assertEqual(expected_events, triggered_events)
+
+
+class BlockTripTestCase(unittest.TestCase):
+    def setUp(self) -> None:
+        self.reference_date = date(year=2024, month=4, day=1)
+        self.stops = gtfs_stations
+        self.mobility_id = "mobility"
+
+        self.simulation = Simulation(
+            start_time=datetime.combine(self.reference_date, time()),
+            capacity=20,
+            trips={
+                self.mobility_id: BlockTrip(trips=[
+                    SingleTrip(
+                        route=...,
+                        service=Service(
+                            start_date=self.reference_date,
+                            end_date=self.reference_date + timedelta(days=7),
+                            monday=True,
+                            tuesday=True,
+                            wednesday=True,
+                            thursday=True,
+                            friday=False,
+                            saturday=False,
+                            sunday=False,
+                        ),
+                        stop_times=[
+                            StopTime(
+                                stop=self.stops[each[0]],
+                                departure=timedelta(minutes=each[1]),
+                            )
+                            for each in [
+                                ("3_1", 543),
+                                ("7_1", 548),
+                                ("11_1", 558),
+                                ("15_1", 562),
+                            ]
+                        ],
+                        block_id="a"
+                    ),
+                    SingleTrip(
+                        route=...,
+                        service=Service(
+                            start_date=self.reference_date,
+                            end_date=self.reference_date + timedelta(days=7),
+                            monday=False,
+                            tuesday=False,
+                            wednesday=False,
+                            thursday=True,
+                            friday=True,
+                            saturday=True,
+                            sunday=True,
+                        ),
+                        stop_times=[
+                            StopTime(
+                                stop=self.stops[each[0]],
+                                departure=timedelta(minutes=each[1]),
+                            )
+                            for each in [
+                                ("19_1", 566),
+                                ("23_0", 574),
+                                ("27_1", 578),
+                                ("31_1", 583),
+                                ("35_1", 590),
+                            ]
+                        ],
+                        block_id="a"
+                    ),
+                ]),
+            },
+        )
+        self.simulation.start()
+
+    def test_cannot_reserve_the_second_trip_only_the_first_trip_is_operating(self):
+        user = {
+            "user_id": "U_001",
+            "org": "3_1",
+            "dst": "23_0",
+            "dept": 490,  # Monday
+        }
+        run(self.simulation, until=user["dept"])
+
+        self.simulation.reserve_user(
+            user_id=user["user_id"],
+            org=user["org"],
+            dst=user["dst"],
+            dept=user["dept"],
+        )
+        triggered_events = run(self.simulation, until=user["dept"] + 1)
+
+        expected_events = [
+            {
+                "eventType": EventType.RESERVED,
+                "time": user["dept"],
+                "details": {
+                    "success": False,
+                    "userId": user["user_id"],
+                },
+            }
+        ]
+        self.assertEqual(expected_events, triggered_events)
+
+    def test_can_reserve_the_first_trip_only_the_first_trip_is_operating(self):
+        user = {
+            "user_id": "U_001",
+            "org": "3_1",
+            "dst": "11_1",
+            "dept": 490,  # Monday
+        }
+        run(self.simulation, until=user["dept"])
+
+        self.simulation.reserve_user(
+            user_id=user["user_id"],
+            org=user["org"],
+            dst=user["dst"],
+            dept=user["dept"],
+        )
+        triggered_events = run(self.simulation, until=user["dept"] + 1)
+
+        expected_events = [
+            {
+                "eventType": EventType.RESERVED,
+                "time": user["dept"],
+                "details": {
+                    "success": True,
+                    "userId": user["user_id"],
+                    "mobilityId": self.mobility_id,
+                    "route": [
+                        {
+                            "org": {
+                                "locationId": self.stops[user["org"]].stop_id,
+                                "lat": self.stops[user["org"]].lat,
+                                "lng": self.stops[user["org"]].lng,
+                            },
+                            "dst": {
+                                "locationId": self.stops[user["dst"]].stop_id,
+                                "lat": self.stops[user["dst"]].lat,
+                                "lng": self.stops[user["dst"]].lng,
+                            },
+                            "dept": 543.0,
+                            "arrv": 558.0,
+                        }
+                    ],
+                },
+            }
+        ]
+        self.assertEqual(expected_events, triggered_events)
+
+    def test_a_user_flow_both_trips_are_in_operation(self):
+        thursday = 1440 * 3
+        user = {
+            "user_id": "U_001",
+            "org": "3_1",
+            "dst": "23_0",
+            "dept": thursday + 490,  # Thursday
+        }
+        run(self.simulation, until=user["dept"])
+
+        self.simulation.reserve_user(
+            user_id=user["user_id"],
+            org=user["org"],
+            dst=user["dst"],
+            dept=user["dept"],
+        )
+
+        triggered_events = run(self.simulation, until=user["dept"] + 1)
+
+        expected_events = [
+            {
+                "eventType": EventType.RESERVED,
+                "time": user["dept"],
+                "details": {
+                    "success": True,
+                    "userId": user["user_id"],
+                    "mobilityId": self.mobility_id,
+                    "route": [
+                        {
+                            "org": {
+                                "locationId": self.stops[user["org"]].stop_id,
+                                "lat": self.stops[user["org"]].lat,
+                                "lng": self.stops[user["org"]].lng,
+                            },
+                            "dst": {
+                                "locationId": self.stops[user["dst"]].stop_id,
+                                "lat": self.stops[user["dst"]].lat,
+                                "lng": self.stops[user["dst"]].lng,
+                            },
+                            "dept": thursday + 543.0,
+                            "arrv": thursday + 574.0,
+                        }
+                    ],
+                },
+            }
+        ]
+        self.assertEqual(expected_events, triggered_events)
+
+        self.simulation.dept_user(
+            user_id=user["user_id"],
+        )
+
+        triggered_events = run(self.simulation, until=thursday + 574.1)
+        triggered_events = [
+            event for event in triggered_events if event["details"]["userId"]
+        ]
+
+        expected_events = [
+            {
+                "eventType": EventType.DEPARTED,
+                "time": thursday + 543.0,
+                "details": {
+                    "userId": user["user_id"],
+                    "mobilityId": self.mobility_id,
+                    "location": {
+                        "locationId": self.stops[user["org"]].stop_id,
+                        "lat": self.stops[user["org"]].lat,
+                        "lng": self.stops[user["org"]].lng,
+                    },
+                },
+            },
+            {
+                "eventType": EventType.ARRIVED,
+                "time": thursday + 574.0,
                 "details": {
                     "userId": user["user_id"],
                     "mobilityId": self.mobility_id,

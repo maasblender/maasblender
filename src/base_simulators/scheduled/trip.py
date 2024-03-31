@@ -14,7 +14,7 @@ class SingleTrip(Trip):
     route: Route
     service: Service
     stop_times: typing.List[StopTime]
-    block_id: str
+    block_id: str = ""
 
     def __post_init__(self):
         assert len(self.stop_times) >= 2
@@ -45,6 +45,7 @@ class SingleTrip(Trip):
         if not self.service.is_operation(at):
             return
 
+        # This is redundant because a single trip may contain multiple identical stations.
         for stop_time_org in self.stop_times_at(at):
             if stop_time_org.stop == org:
                 for stop_time_dst in self.stop_times_at(at):
@@ -59,8 +60,6 @@ class SingleTrip(Trip):
 class BlockTrip(Trip):
     """Sequence of trips which belong to a block"""
 
-    route: Route
-    service: Service
     trips: typing.List[SingleTrip]
 
     def __post_init__(self):
@@ -70,19 +69,44 @@ class BlockTrip(Trip):
 
     @property
     def stops(self) -> typing.List[Stop]:
-        raise NotImplementedError()
+        return [
+            stop_time.stop
+            for trip in self.trips
+            for stop_time in trip.stop_times
+        ]
 
-    def is_operation(self, at_date: date) -> bool:
-        raise NotImplementedError()
+    def is_operation(self, at: date) -> bool:
+        return any([
+            trip.service.is_operation(at)
+            for trip in self.trips
+        ])
 
-    def stop_times_at(self, at_date: date):
-        raise NotImplementedError()
+    def stop_times_at(self, at: date):
+        # Depending on the service configuration, a block trip can be split into multiple trips
+        # instead of being treated as a single block trip depending on the day of the week,
+        # but this will not be considered for now.
+        return [
+            StopTimeWithDateTime(stop_time=stop_time, reference_date=at)
+            for trip in self.trips
+            if trip.service.is_operation(at)
+            for stop_time in trip.stop_times
+        ]
 
     def start_time(self, at: date):
-        raise NotImplementedError()
+        return list(self.stop_times_at(at))[0].arrival
 
     def end_time(self, at: date):
-        raise NotImplementedError()
+        return list(self.stop_times_at(at))[-1].departure
 
     def paths(self, org: Stop, dst: Stop, at: date):
-        raise NotImplementedError()
+        if not self.is_operation(at):
+            return
+
+        for stop_time_org in self.stop_times_at(at):
+            if stop_time_org.stop == org:
+                for stop_time_dst in self.stop_times_at(at):
+                    if (
+                        stop_time_dst.stop == dst
+                        and stop_time_org.departure < stop_time_dst.arrival
+                    ):
+                        yield Path(pick_up=stop_time_org, drop_off=stop_time_dst)
