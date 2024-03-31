@@ -186,7 +186,9 @@ class Trip:
     def end_time(self, at: date) -> datetime:
         raise NotImplementedError()
 
-    def paths(self, org: Stop, dst: Stop, at: date) -> typing.Generator[Path, typing.Any, None]:
+    def paths(
+        self, org: Stop, dst: Stop, at: date
+    ) -> typing.Generator[Path, typing.Any, None]:
         raise NotImplementedError()
 
 

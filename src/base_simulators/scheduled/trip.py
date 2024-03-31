@@ -21,10 +21,7 @@ class SingleTrip(Trip):
 
     @property
     def stops(self) -> typing.List[Stop]:
-        return [
-            stop_time.stop
-            for stop_time in self.stop_times
-        ]
+        return [stop_time.stop for stop_time in self.stop_times]
 
     def is_operation(self, at: date) -> bool:
         return self.service.is_operation(at)
@@ -69,17 +66,10 @@ class BlockTrip(Trip):
 
     @property
     def stops(self) -> typing.List[Stop]:
-        return [
-            stop_time.stop
-            for trip in self.trips
-            for stop_time in trip.stop_times
-        ]
+        return [stop_time.stop for trip in self.trips for stop_time in trip.stop_times]
 
     def is_operation(self, at: date) -> bool:
-        return any([
-            trip.service.is_operation(at)
-            for trip in self.trips
-        ])
+        return any([trip.service.is_operation(at) for trip in self.trips])
 
     def stop_times_at(self, at: date):
         # Depending on the service configuration, a block trip can be split into multiple trips

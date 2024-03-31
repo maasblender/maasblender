@@ -84,7 +84,7 @@ async def setup(settings: query.Setup):
     sim = Simulation(
         start_time=datetime.datetime.strptime(settings.reference_time, "%Y%m%d"),
         capacity=settings.mobility.capacity,
-        trips=trips
+        trips=trips,
     )
 
     return {"message": "successfully configured."}

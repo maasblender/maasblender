@@ -86,7 +86,9 @@ class GtfsFilesReader:
         )
         self._services: typing.Dict[str, Service] = {}
         self.trips: typing.Dict[str, SingleTrip] = {}
-        self.blocks: typing.Dict[str, typing.List[SingleTrip]] = collections.defaultdict(list)
+        self.blocks: typing.Dict[str, typing.List[SingleTrip]] = (
+            collections.defaultdict(list)
+        )
 
         with archive.open("agency.txt") as f:
             for k, v in GtfsReader(f, parse_agency):

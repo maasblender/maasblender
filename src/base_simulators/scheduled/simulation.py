@@ -36,9 +36,7 @@ class Simulation:
             ],
         )
         self.stops = {
-            stop.stop_id: stop
-            for trip in trips.values()
-            for stop in trip.stops
+            stop.stop_id: stop for trip in trips.values() for stop in trip.stops
         }
 
     def start(self):

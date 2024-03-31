@@ -237,63 +237,65 @@ class BlockTripTestCase(unittest.TestCase):
             start_time=datetime.combine(self.reference_date, time()),
             capacity=20,
             trips={
-                self.mobility_id: BlockTrip(trips=[
-                    SingleTrip(
-                        route=...,
-                        service=Service(
-                            start_date=self.reference_date,
-                            end_date=self.reference_date + timedelta(days=7),
-                            monday=True,
-                            tuesday=True,
-                            wednesday=True,
-                            thursday=True,
-                            friday=False,
-                            saturday=False,
-                            sunday=False,
+                self.mobility_id: BlockTrip(
+                    trips=[
+                        SingleTrip(
+                            route=...,
+                            service=Service(
+                                start_date=self.reference_date,
+                                end_date=self.reference_date + timedelta(days=7),
+                                monday=True,
+                                tuesday=True,
+                                wednesday=True,
+                                thursday=True,
+                                friday=False,
+                                saturday=False,
+                                sunday=False,
+                            ),
+                            stop_times=[
+                                StopTime(
+                                    stop=self.stops[each[0]],
+                                    departure=timedelta(minutes=each[1]),
+                                )
+                                for each in [
+                                    ("3_1", 543),
+                                    ("7_1", 548),
+                                    ("11_1", 558),
+                                    ("15_1", 562),
+                                ]
+                            ],
+                            block_id="a",
                         ),
-                        stop_times=[
-                            StopTime(
-                                stop=self.stops[each[0]],
-                                departure=timedelta(minutes=each[1]),
-                            )
-                            for each in [
-                                ("3_1", 543),
-                                ("7_1", 548),
-                                ("11_1", 558),
-                                ("15_1", 562),
-                            ]
-                        ],
-                        block_id="a"
-                    ),
-                    SingleTrip(
-                        route=...,
-                        service=Service(
-                            start_date=self.reference_date,
-                            end_date=self.reference_date + timedelta(days=7),
-                            monday=False,
-                            tuesday=False,
-                            wednesday=False,
-                            thursday=True,
-                            friday=True,
-                            saturday=True,
-                            sunday=True,
+                        SingleTrip(
+                            route=...,
+                            service=Service(
+                                start_date=self.reference_date,
+                                end_date=self.reference_date + timedelta(days=7),
+                                monday=False,
+                                tuesday=False,
+                                wednesday=False,
+                                thursday=True,
+                                friday=True,
+                                saturday=True,
+                                sunday=True,
+                            ),
+                            stop_times=[
+                                StopTime(
+                                    stop=self.stops[each[0]],
+                                    departure=timedelta(minutes=each[1]),
+                                )
+                                for each in [
+                                    ("19_1", 566),
+                                    ("23_0", 574),
+                                    ("27_1", 578),
+                                    ("31_1", 583),
+                                    ("35_1", 590),
+                                ]
+                            ],
+                            block_id="a",
                         ),
-                        stop_times=[
-                            StopTime(
-                                stop=self.stops[each[0]],
-                                departure=timedelta(minutes=each[1]),
-                            )
-                            for each in [
-                                ("19_1", 566),
-                                ("23_0", 574),
-                                ("27_1", 578),
-                                ("31_1", 583),
-                                ("35_1", 590),
-                            ]
-                        ],
-                        block_id="a"
-                    ),
-                ]),
+                    ]
+                ),
             },
         )
         self.simulation.start()
