@@ -19,9 +19,12 @@ class Simulation:
         self,
         start_time: datetime,
         capacity: int,
-        trips: typing.Dict[str, SingleTrip],
-        blocks: typing.Dict[str, list[SingleTrip]],
+        trips: typing.Dict[str, SingleTrip] = None,
+        blocks: typing.Dict[str, list[SingleTrip]] = None,
     ) -> None:
+        trips = trips or {}
+        blocks = blocks or {}
+
         self.env = Environment(start_time=start_time)
         self.event_queue = EventQueue()
         self.car_manager = CarManager(
