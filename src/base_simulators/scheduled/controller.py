@@ -77,14 +77,12 @@ async def setup(settings: query.Setup):
     with zipfile.ZipFile(io.BytesIO(data)) as archive:
         gtfs_files = gtfs.GtfsFilesReader(archive)
 
-    trips = gtfs_files.trips
-    # ToDo: handle gtfs_files.blocks
-
     global sim
     sim = Simulation(
         start_time=datetime.datetime.strptime(settings.reference_time, "%Y%m%d"),
         capacity=settings.mobility.capacity,
-        trips=trips,
+        trips=gtfs_files.trips,
+        blocks=gtfs_files.blocks,
     )
 
     return {"message": "successfully configured."}
