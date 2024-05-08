@@ -43,7 +43,7 @@ class Simulation:
                 CarSetting(
                     mobility_id=block_id,
                     capacity=capacity,
-                    trip=BlockTrip(trips=trips),
+                    trip=BlockTrip(trips=sorted(trips, key=lambda x: x.stop_times[0].departure)),
                 )
                 for block_id, trips in blocks.items()
             ],

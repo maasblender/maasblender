@@ -63,6 +63,9 @@ class BlockTrip(Trip):
         assert len(self.trips) >= 2
         assert len(set(trip.block_id for trip in self.trips)) <= 1
         assert self.trips[0].block_id != ""
+        
+        # The following assertion is generally true for most cases,
+        assert self.trips[0].stop_times[0].departure < self.trips[1].stop_times[0].departure
 
     @property
     def stops(self) -> typing.List[Stop]:
