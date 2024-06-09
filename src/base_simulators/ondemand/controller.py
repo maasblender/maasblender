@@ -1,6 +1,7 @@
 # SPDX-FileCopyrightText: 2022 TOYOTA MOTOR CORPORATION and MaaS Blender Contributors
 # SPDX-License-Identifier: Apache-2.0
 import datetime
+import json
 import io
 import logging
 import zipfile
@@ -97,6 +98,20 @@ async def setup(settings: query.Setup):
                         continue
                     assert (
                         distance >= 0
+                    ), f"distance must not negative: {distance}, {stop_a} -> {stop_b}"
+                    network.add_edge(stop_a, stop_b, distance / settings.mobility_speed)
+        elif network_filename := settings.network.filename:
+            _, data = await file_table.pop(
+                session, filename=network_filename, url=None
+            )
+            matrix = json.loads(data)
+            network = Network()
+            for stop_a, row in zip(matrix["stops"], matrix["matrix"]):
+                for stop_b, distance in zip(matrix["stops"], row):
+                    if stop_a == stop_b:
+                        continue
+                    assert (
+                            distance >= 0
                     ), f"distance must not negative: {distance}, {stop_a} -> {stop_b}"
                     network.add_edge(stop_a, stop_b, distance / settings.mobility_speed)
         else:
