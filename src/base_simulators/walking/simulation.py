@@ -10,7 +10,7 @@ from core import Location
 from event import ReservedEvent, DepartedEvent, ArrivedEvent
 
 logger = logging.getLogger(__name__)
-MIN_DURATION = 0.1  # = 6秒
+MIN_DURATION = 0.0
 
 
 @dataclass(frozen=True)
