@@ -54,7 +54,6 @@ def setup(settings: query.Setup):
         settings.trips,
         settings.userIDFormat,
         settings.demandIDFormat,
-        settings.offset_time,
     )
     return response.Message(message="successfully configured.")
 

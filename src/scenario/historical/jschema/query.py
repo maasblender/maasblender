@@ -12,6 +12,7 @@ class LocationSetting(BaseModel):
 class HistoricalDemandSetting(BaseModel):
     org: LocationSetting
     dst: LocationSetting
+    time: float = Field(..., description="Time to reserve mobilities")
     dept: float = Field(..., description="Time to start move from org to dst")
     service: str | None = None
     user_id: str | None = None
@@ -29,4 +30,3 @@ class Setup(BaseModel):
     trips: list[HistoricalDemandSetting]
     userIDFormat: str = "U_%d"
     demandIDFormat: str = "D_%d"
-    offset_time: float = 0.0

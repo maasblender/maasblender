@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 @dataclass(frozen=True)
 class HistoricalDemand:
-    dept: float
+    time: float
     user_id: str
     info: DemandInfo
 
@@ -33,11 +33,7 @@ class HistoricalScenario:
         settings: typing.Collection[jschema.query.HistoricalDemandSetting],
         user_id_format: str,
         demand_id_format: str,
-        offset_time=0.0,
     ):
-        if offset_time:
-            logger.info("offset time: %s", offset_time)
-
         # append user_id
         user_id_gen = (user_id_format % i for i in itertools.count(1))
         demand_id_gen = (demand_id_format % i for i in itertools.count(1))
@@ -58,7 +54,7 @@ class HistoricalScenario:
 
         self._demands = [
             HistoricalDemand(
-                dept=setting.dept - offset_time,
+                time=setting.time,
                 user_id=setting.user_id,
                 info=DemandInfo(
                     org=Location(
@@ -67,13 +63,13 @@ class HistoricalScenario:
                     dst=Location(
                         setting.dst.locationId, setting.dst.lat, setting.dst.lng
                     ),
+                    dept=setting.dept,
                     service=setting.service,
                     demand_id=setting.demand_id,
                     user_type=self._user_types[setting.user_id],
                 ),
             )
             for setting in settings
-            if setting.dept - offset_time >= 0
         ]
 
     def users(self):
@@ -100,5 +96,5 @@ class HistoricalScenario:
         ]
 
     def _demand(self, demand: HistoricalDemand):
-        yield self.env.timeout(demand.dept)
+        yield self.env.timeout(demand.time)
         self._events.append(DemandEvent(user_id=demand.user_id, info=demand.info))
