@@ -52,6 +52,7 @@ class HistoricalScenarioTestCase(unittest.TestCase):
                     "userId": "U_1",
                     "userType": "user-xyz",
                     "demandId": "D_1",
+                    "dept": 400,
                     "org": org,
                     "dst": dst,
                     "service": "mobility",
