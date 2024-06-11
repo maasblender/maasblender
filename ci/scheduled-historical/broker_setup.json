@@ -26,11 +26,11 @@
             "lat": 36.6835921,
             "lng": 137.2044729
           },
+          "time": 540.0,
           "dept": 540.0
         }
       ],
-      "userIDFormat": "U_%d",
-      "offset_time": 0
+      "userIDFormat": "U_%d"
     }
   },
   "gtfs": {
