@@ -101,9 +101,7 @@ async def setup(settings: query.Setup):
                     ), f"distance must not negative: {distance}, {stop_a} -> {stop_b}"
                     network.add_edge(stop_a, stop_b, distance / settings.mobility_speed)
         elif network_filename := settings.network.filename:
-            _, data = await file_table.pop(
-                session, filename=network_filename, url=None
-            )
+            _, data = await file_table.pop(session, filename=network_filename, url=None)
             matrix = json.loads(data)
             network = Network()
             for stop_a, row in zip(matrix["stops"], matrix["matrix"]):
@@ -111,7 +109,7 @@ async def setup(settings: query.Setup):
                     if stop_a == stop_b:
                         continue
                     assert (
-                            distance >= 0
+                        distance >= 0
                     ), f"distance must not negative: {distance}, {stop_a} -> {stop_b}"
                     network.add_edge(stop_a, stop_b, distance / settings.mobility_speed)
         else:
