@@ -43,5 +43,7 @@ class Setup(BaseModel):
     networks: dict[str, NetworkSetting]
     reference_time: constr(min_length=8, max_length=8)
     modes: conlist(str, min_length=1) = ["TRANSIT,WALK", "FLEX_DIRECT,WALK"]
-    walking_meters_per_minute: float | None = None  # get from router_config.json, if None
+    walking_meters_per_minute: float | None = (
+        None  # get from router_config.json, if None
+    )
     timezone: int = +9

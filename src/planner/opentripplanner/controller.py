@@ -164,17 +164,19 @@ async def get_walking_speed(setting: query.Setup):
     return walking_meters_per_minute
 
 
-async def deploy_otp_files(session: aiohttp.ClientSession, refs: list[query.InputFilesItem], diff_years: float):
+async def deploy_otp_files(
+    session: aiohttp.ClientSession, refs: list[query.InputFilesItem], diff_years: float
+):
     """deploy set of configuration files for OpenTripPlanner"""
     for ref in refs:
-        filename, data = await file_table.pop(session, filename=ref.filename, url=ref.fetch_url)
+        filename, data = await file_table.pop(
+            session, filename=ref.filename, url=ref.fetch_url
+        )
         with zipfile.ZipFile(io.BytesIO(data)) as archive:
             archive.extractall(env.OPENTRIPPLANNER_VOLUME_DIR)
     path_otp_config = env.OPENTRIPPLANNER_VOLUME_DIR / "otp-config.json"
     if not path_otp_config.exists():
-        data = {
-            "otpFeatures": {"ActuatorAPI": True, "FlexRouting": True}
-        }
+        data = {"otpFeatures": {"ActuatorAPI": True, "FlexRouting": True}}
         with path_otp_config.open("w", encoding="utf-8") as fd:
             json.dump(data, fd)
         logger.info("make otp-config.json file: %s", data)
@@ -183,12 +185,12 @@ async def deploy_otp_files(session: aiohttp.ClientSession, refs: list[query.Inpu
         if diff_years < 0:  # past
             data = {
                 "transitServiceStart": f"-P{math.ceil(-diff_years) + 1}Y",
-                "transitServiceEnd": f"P2Y"
+                "transitServiceEnd": "P2Y",
             }
         else:  # future
             data = {
-                "transitServiceStart": f"-P1Y",
-                "transitServiceEnd": f"P{math.ceil(diff_years) + 2}Y"
+                "transitServiceStart": "-P1Y",
+                "transitServiceEnd": f"P{math.ceil(diff_years) + 2}Y",
             }
         with path_build_config.open("w", encoding="utf-8") as fd:
             json.dump(data, fd)
@@ -202,7 +204,9 @@ async def setup(request: fastapi.Request, setting: query.Setup):
         # ToDo: Consider the proper handling of time zone
         tzinfo=timezone
     )
-    diff_years = (ref_datetime - datetime.datetime.now(timezone)).days / 365  # rough number of years
+    diff_years = (
+        ref_datetime - datetime.datetime.now(timezone)
+    ).days / 365  # rough number of years
 
     network_types = set()
     async with aiohttp.ClientSession() as session:
@@ -214,7 +218,9 @@ async def setup(request: fastapi.Request, setting: query.Setup):
                     filename, data = await file_table.pop(
                         session, filename=ref.filename, url=ref.fetch_url
                     )
-                    (env.OPENTRIPPLANNER_VOLUME_DIR / urlquote(filename)).write_bytes(data)
+                    (env.OPENTRIPPLANNER_VOLUME_DIR / urlquote(filename)).write_bytes(
+                        data
+                    )
                 elif network.type in ["gbfs"]:
                     filename, data = await file_table.pop(
                         session, filename=ref.filename, url=ref.fetch_url
@@ -222,7 +228,9 @@ async def setup(request: fastapi.Request, setting: query.Setup):
                     # Place the unzipped file in the Static folder for GBFS
                     # Separate the files from other GBFS files by using a zip file name.
                     with zipfile.ZipFile(io.BytesIO(data)) as archive:
-                        archive.extractall(env.OPENTRIPPLANNER_GBFS_DIR / urlquote(filename))
+                        archive.extractall(
+                            env.OPENTRIPPLANNER_GBFS_DIR / urlquote(filename)
+                        )
                 else:
                     msg = f"not supported network type: {network.type}"
                     raise fastapi.HTTPException(
