@@ -12,7 +12,7 @@ class LocationSetting(BaseModel):
 class HistoricalDemandSetting(BaseModel):
     org: LocationSetting
     dst: LocationSetting
-    time: float = Field(..., description="Time to reserve mobilities")
+    time: float | None = Field(None, description="Time to reserve mobilities")
     dept: float = Field(..., description="Time to start move from org to dst")
     service: str | None = None
     user_id: str | None = None
@@ -23,6 +23,8 @@ class HistoricalDemandSetting(BaseModel):
     def check_exist_time(self):
         if self.dept is None and self.arrv is None:
             raise ValueError("not specified both dept and arrv")
+        if self.time is None:
+            self.time = self.dept
         return self
 
 
