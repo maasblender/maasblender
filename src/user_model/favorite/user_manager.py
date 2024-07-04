@@ -207,6 +207,7 @@ class Reserve(Task):
             ReserveEvent(
                 service=self.service,
                 user_id=user.user_id,
+                demand_id=user.demand_id,
                 org=self.route.trips[1].org,
                 dst=self.route.trips[1].dst,
                 dept=self.route.trips[1].dept,
@@ -304,6 +305,7 @@ class ReservedTrip(Task):
             DepartEvent(
                 service=self.service,
                 user_id=user.user_id,
+                demand_id=user.demand_id,
                 now=self.event_manager.env.now,
             )
         )
@@ -384,6 +386,7 @@ class UserManager(Runner):
     async def demand(
         self,
         user_id: str,
+        demand_id: str,
         org: Location,
         dst: Location,
         dept: float | None,
@@ -408,7 +411,8 @@ class UserManager(Runner):
         route_filter = self._route_filter[user_id]
         tasks = self.plans_to_trips(route_plans, fixed_service, route_filter)
         user = User(
-            id_=user_id,
+            user_id=user_id,
+            demand_id=demand_id,
             org=org,
             dst=dst,
             dept=dept,
