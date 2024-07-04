@@ -6,12 +6,13 @@ import datetime
 import io
 import json
 import logging
+import math
 import pathlib
 import subprocess
 import typing
 import zipfile
 from copy import deepcopy
-from urllib.parse import urljoin
+from urllib.parse import urljoin, quote as urlquote
 
 import aiohttp
 import fastapi
@@ -97,7 +98,8 @@ def update_config_files_for_gbfs(url_base: str):
         "type": "bike-rental",
         # "network": "electricScooter",
         # "language": "en",
-        "frequencySec": 5,
+        "frequencySec": 5,  # OTP version <= 2.3.0
+        # "frequency": "PT30S",  # OTP version >= 2.4.0
         "sourceType": "gbfs",
         # "allowKeepingRentedBicycleAtDestination": False,
         "url": "",
@@ -114,7 +116,7 @@ def update_config_files_for_gbfs(url_base: str):
             dir_gbfs = path_gbfs_json.parent
             # Get gbfs.json file path and URL
             gbfsname = dir_gbfs.relative_to(env.OPENTRIPPLANNER_GBFS_DIR)
-            url = urljoin(url_base, f"/gbfs/{gbfsname}/gbfs.json")
+            url = urljoin(url_base, f"/gbfs/{urlquote(gbfsname)}/gbfs.json")
 
             # Set URL to gbfs.json for updaters element in router-config.json
             for updater in updaters:
@@ -162,16 +164,49 @@ async def get_walking_speed(setting: query.Setup):
     return walking_meters_per_minute
 
 
+async def deploy_otp_files(session: aiohttp.ClientSession, refs: list[query.InputFilesItem], diff_years: float):
+    """deploy set of configuration files for OpenTripPlanner"""
+    for ref in refs:
+        filename, data = await file_table.pop(session, filename=ref.filename, url=ref.fetch_url)
+        with zipfile.ZipFile(io.BytesIO(data)) as archive:
+            archive.extractall(env.OPENTRIPPLANNER_VOLUME_DIR)
+    path_otp_config = env.OPENTRIPPLANNER_VOLUME_DIR / "otp-config.json"
+    if not path_otp_config.exists():
+        data = {
+            "otpFeatures": {"ActuatorAPI": True, "FlexRouting": True}
+        }
+        with path_otp_config.open("w", encoding="utf-8") as fd:
+            json.dump(data, fd)
+        logger.info("make otp-config.json file: %s", data)
+    path_build_config = env.OPENTRIPPLANNER_VOLUME_DIR / "build-config.json"
+    if not path_build_config.exists():
+        if diff_years < 0:  # past
+            data = {
+                "transitServiceStart": f"-P{math.ceil(-diff_years) + 1}Y",
+                "transitServiceEnd": f"P2Y"
+            }
+        else:  # future
+            data = {
+                "transitServiceStart": f"-P1Y",
+                "transitServiceEnd": f"P{math.ceil(diff_years) + 2}Y"
+            }
+        with path_build_config.open("w", encoding="utf-8") as fd:
+            json.dump(data, fd)
+        logger.info("make build-config.json file: %s", data)
+
+
 @app.post("/setup", response_model=response.Message)
 async def setup(request: fastapi.Request, setting: query.Setup):
+    timezone = datetime.timezone(datetime.timedelta(hours=setting.timezone))
+    ref_datetime = datetime.datetime.strptime(setting.reference_time, "%Y%m%d").replace(
+        # ToDo: Consider the proper handling of time zone
+        tzinfo=timezone
+    )
+    diff_years = (ref_datetime - datetime.datetime.now(timezone)).days / 365  # rough number of years
+
     network_types = set()
     async with aiohttp.ClientSession() as session:
-        for ref in setting.otp_config.input_files:
-            filename, data = await file_table.pop(
-                session, filename=ref.filename, url=ref.fetch_url
-            )
-            with zipfile.ZipFile(io.BytesIO(data)) as archive:
-                archive.extractall(env.OPENTRIPPLANNER_VOLUME_DIR)
+        await deploy_otp_files(session, setting.otp_config.input_files, diff_years)
         for service, network in setting.networks.items():
             for ref in network.input_files:
                 network_types.add(network.type)
@@ -179,7 +214,7 @@ async def setup(request: fastapi.Request, setting: query.Setup):
                     filename, data = await file_table.pop(
                         session, filename=ref.filename, url=ref.fetch_url
                     )
-                    (env.OPENTRIPPLANNER_VOLUME_DIR / filename).write_bytes(data)
+                    (env.OPENTRIPPLANNER_VOLUME_DIR / urlquote(filename)).write_bytes(data)
                 elif network.type in ["gbfs"]:
                     filename, data = await file_table.pop(
                         session, filename=ref.filename, url=ref.fetch_url
@@ -187,7 +222,7 @@ async def setup(request: fastapi.Request, setting: query.Setup):
                     # Place the unzipped file in the Static folder for GBFS
                     # Separate the files from other GBFS files by using a zip file name.
                     with zipfile.ZipFile(io.BytesIO(data)) as archive:
-                        archive.extractall(env.OPENTRIPPLANNER_GBFS_DIR / filename)
+                        archive.extractall(env.OPENTRIPPLANNER_GBFS_DIR / urlquote(filename))
                 else:
                     msg = f"not supported network type: {network.type}"
                     raise fastapi.HTTPException(
@@ -206,12 +241,7 @@ async def setup(request: fastapi.Request, setting: query.Setup):
     global planner
     planner = OpenTripPlanner(
         endpoint=f"http://localhost:{env.OPENTRIPPLANNER_PORT}",
-        ref_datetime=datetime.datetime.strptime(
-            setting.reference_time, "%Y%m%d"
-        ).replace(
-            # ToDo: Consider the proper handling of time zone
-            tzinfo=datetime.timezone(datetime.timedelta(hours=setting.timezone))
-        ),
+        ref_datetime=ref_datetime,
         walking_meters_per_minute=walking_meters_per_minute,
         modes=setting.modes,
         services={

@@ -87,7 +87,7 @@ async def setup(settings: query.Setup):
     users: list[dict[str, str]] = []
     async with aiohttp.ClientSession() as session:
         for e in settings.users:
-            async with session.get(e.fetch_url) as resp:
+            async with session.get(str(e.fetch_url)) as resp:
                 await httputil.check_response(resp)
                 users.extend(await resp.json())
 
