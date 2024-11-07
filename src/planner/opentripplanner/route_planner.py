@@ -111,12 +111,16 @@ class OpenTripPlanner:
                     paths.append(path)
         paths.sort(key=lambda e: e.arrv)
 
-        if not paths:
-            logger.warning("no plan by OTP, and return straight walk path.")
-            return [self.straight_walk_path(org, dst, dept)]
-
-        if all(all(trip.service == "walking" for trip in path.trips) for path in paths):
-            logger.warning("no service plan by OTP, and return walk path")
+        if not any(
+            all(trip.service == "walking" for trip in path.trips) for path in paths
+        ):
+            # If a walking route is not found, append a walking route.
+            walk_path = self.straight_walk_path(org, dst, dept)
+            paths.append(walk_path)
+            if not paths:
+                logger.warning("no plan by OTP, and return straight walk path.")
+            else:
+                logger.warning("no walking plan found by OTP, and appended a walking path: %s", walk_path)
 
         return paths
 
