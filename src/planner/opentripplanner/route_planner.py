@@ -120,7 +120,10 @@ class OpenTripPlanner:
             if not paths:
                 logger.warning("no plan by OTP, and return straight walk path.")
             else:
-                logger.warning("no walking plan found by OTP, and appended a walking path: %s", walk_path)
+                logger.warning(
+                    "no walking plan found by OTP, and appended a walking path: %s",
+                    walk_path,
+                )
 
         return paths
 
