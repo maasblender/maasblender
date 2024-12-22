@@ -5,6 +5,7 @@ pydantic_settings~=2.0.3
 python-multipart~=0.0.6
 simpy~=4.0.2
 uvicorn~=0.23.2
+attrs==24.2.0
 
 geopy~=2.4.0
 
