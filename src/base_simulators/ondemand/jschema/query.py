@@ -25,7 +25,7 @@ class InputFilesItem(BaseModel):
 
 class Setup(BaseModel):
     reference_time: constr(min_length=8, max_length=8)
-    input_files: list[InputFilesItem] = Field(..., min_items=1, max_items=1)
+    input_files: list[InputFilesItem] = Field(..., min_items=1, max_items=2)
     network: InputFilesItem
     board_time: float | None
     max_delay_time: float | None
