@@ -38,14 +38,16 @@ class GtfsFlexFilesReader:
         for filename, parse in {
             "stops.txt": self._parse_stop,
             "location_groups.txt": self._parse_location_groups,
+            "location_group_stops.txt": self._parse_location_group_stops,
             "calendar.txt": self._parse_calender,
             "calendar_dates.txt": self._parse_calender_dates,
             "stop_times.txt": self._parse_stop_time,
             "trips.txt": self._parse_trip,
         }.items():
-            with archive.open(filename) as f:
-                for row in csv.DictReader(io.TextIOWrapper(f, encoding="utf-8-sig")):
-                    parse(row)
+            if filename in archive.namelist():
+                with archive.open(filename) as f:
+                    for row in csv.DictReader(io.TextIOWrapper(f, encoding="utf-8-sig")):
+                        parse(row)
         return self
 
     def _parse_stop(self, row: typing.Mapping[str, str]):
@@ -66,7 +68,13 @@ class GtfsFlexFilesReader:
         if not group:
             group = Group(group_id=group_id, name=row["location_group_name"])
             self.location_groups[group_id] = group
-        group.locations.append(self.stops[row["location_id"]])
+        # in new GTFS FLEX spec., separated this 'location_id' column into location_group_stops.txt
+        if location_id := row.get("location_id", None):
+            group.locations.append(self.stops[location_id])
+
+    def _parse_location_group_stops(self, row: typing.Mapping[str, str]):
+        group_id = row["location_group_id"]
+        self.location_groups[group_id].locations.append(self.stops[row["stop_id"]])
 
     def _parse_calender(self, row: typing.Mapping[str, str]):
         self._services.update(
@@ -91,10 +99,12 @@ class GtfsFlexFilesReader:
         )
 
     def _parse_stop_time(self, row: typing.Mapping[str, str]):
+        # "stop_id" column describes In old GTFS FLEX spec.
+        location_group_id = row.get("location_group_id") or row.get("stop_id")
         self._stop_times.update(
             {
                 row["trip_id"]: StopTime(
-                    group=self.location_groups[row["stop_id"]],
+                    group=self.location_groups[location_group_id],
                     start_window=str_time(row["start_pickup_dropoff_window"]),
                     end_window=str_time(row["end_pickup_dropoff_window"]),
                 )

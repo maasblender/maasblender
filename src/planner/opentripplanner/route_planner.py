@@ -3,6 +3,7 @@
 import asyncio
 import datetime
 import logging
+import math
 import re
 import typing
 
@@ -233,7 +234,9 @@ class OpenTripPlanner:
     }
             """)
 
-        dept_datetime = self.ref_datetime + datetime.timedelta(minutes=dept)
+        # if a fractional second is given, the OTP raise error because
+        dept_datetime = self.ref_datetime + datetime.timedelta(seconds=math.ceil(dept * 60))
+
         response = await self.client.execute_async(
             query,
             variable_values={

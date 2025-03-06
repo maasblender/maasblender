@@ -1,14 +1,20 @@
 FROM python:3.11-slim
 
+ARG jdk_version=21
+ARG otp_version=2.6.0
+ARG jdk_url=https://download.oracle.com/java/${jdk_version}/latest/jdk-${jdk_version}_linux-x64_bin.deb
+ARG otp_url=https://repo1.maven.org/maven2/org/opentripplanner/otp/${otp_version}/otp-${otp_version}-shaded.jar
+
 RUN apt-get update && apt-get install -y \
-    openjdk-17-jre \
     wget \
     git \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-RUN mkdir /var/otp \
- && wget "https://repo1.maven.org/maven2/org/opentripplanner/otp/2.4.0/otp-2.4.0-shaded.jar" -O /var/otp/otp-shaded.jar
+RUN wget ${jdk_url} \
+ && dpkg -i jdk-*_linux-x64_bin.deb \
+ && mkdir /var/otp \
+ && wget ${otp_url} -O /var/otp/otp-shaded.jar
 
 COPY requirements.txt ./
 ENV PIP_ROOT_USER_ACTION=ignore
