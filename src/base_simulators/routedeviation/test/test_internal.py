@@ -7,6 +7,7 @@ from datetime import datetime, date, time, timedelta
 from simulation import Simulation
 from core import EventType, Stop, StopTime, Service
 from trip import SingleTrip, BlockTrip
+from mblib.jschema import events
 
 logger = logging.getLogger(__name__)
 
@@ -36,6 +37,11 @@ gtfs_stations = {
     "31_1": Stop("31_1", "31_1", lat=36.69018, lng=137.203424),
     "35_1": Stop("35_1", "35_1", lat=36.702725, lng=137.207239),
 }
+
+
+def get_location(stop_id: str) -> events.Location:
+    stop = gtfs_stations[stop_id]
+    return events.Location(locationId=stop.stop_id, lat=stop.lat, lng=stop.lng)
 
 
 class SingleTripTestCase(unittest.TestCase):
@@ -158,8 +164,8 @@ class SingleTripTestCase(unittest.TestCase):
         self.simulation.reserve_user(
             user_id=user["user_id"],
             demand_id=user["demand_id"],
-            org=user["org"],
-            dst=user["dst"],
+            org=get_location(user["org"]),
+            dst=get_location(user["dst"]),
             dept=user["dept"],
         )
         triggered_events = run(self.simulation, until=user["dept"] + 1)
@@ -322,8 +328,8 @@ class BlockTripTestCase(unittest.TestCase):
         self.simulation.reserve_user(
             user_id=user["user_id"],
             demand_id=user["demand_id"],
-            org=user["org"],
-            dst=user["dst"],
+            org=get_location(user["org"]),
+            dst=get_location(user["dst"]),
             dept=user["dept"],
         )
         triggered_events = run(self.simulation, until=user["dept"] + 1)
@@ -354,8 +360,8 @@ class BlockTripTestCase(unittest.TestCase):
         self.simulation.reserve_user(
             user_id=user["user_id"],
             demand_id=user["demand_id"],
-            org=user["org"],
-            dst=user["dst"],
+            org=get_location(user["org"]),
+            dst=get_location(user["dst"]),
             dept=user["dept"],
         )
         triggered_events = run(self.simulation, until=user["dept"] + 1)
@@ -404,8 +410,8 @@ class BlockTripTestCase(unittest.TestCase):
         self.simulation.reserve_user(
             user_id=user["user_id"],
             demand_id=user["demand_id"],
-            org=user["org"],
-            dst=user["dst"],
+            org=get_location(user["org"]),
+            dst=get_location(user["dst"]),
             dept=user["dept"],
         )
 

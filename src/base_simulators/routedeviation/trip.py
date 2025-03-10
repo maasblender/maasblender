@@ -194,6 +194,14 @@ class BlockTrip(Trip):
         )
 
     @property
+    def stop_times(self) -> typing.List[StopTime]:
+        return [stop_time for trip in self.trips for stop_time in trip.stop_times if isinstance(stop_time, StopTime)]
+
+    @property
+    def locations(self) -> typing.List[TripLocation]:
+        return [stop_time for trip in self.trips for stop_time in trip.stop_times if isinstance(stop_time, TripLocation)]
+
+    @property
     def stops(self) -> typing.List[Stop]:
         return [stop_time.stop for trip in self.trips for stop_time in trip.stop_times]
 
