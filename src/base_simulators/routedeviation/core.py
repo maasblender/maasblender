@@ -125,7 +125,9 @@ class DeviatedStopTimeWithDateTime:
         return self.date_time
 
 
-AbstractStopTimeWithDateTime: typing.TypeAlias = StopTimeWithDateTime | DeviatedStopTimeWithDateTime
+AbstractStopTimeWithDateTime: typing.TypeAlias = (
+    StopTimeWithDateTime | DeviatedStopTimeWithDateTime
+)
 
 
 @dataclasses.dataclass

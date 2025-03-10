@@ -111,7 +111,9 @@ class GtfsFilesReader:
                 for service_id, exception_date, is_added in GtfsReader(
                     f, parse_calendar_dates
                 ):
-                    self._services[service_id].append_exception(exception_date, is_added)
+                    self._services[service_id].append_exception(
+                        exception_date, is_added
+                    )
 
         with archive.open("stop_times.txt") as f:
             for k, v in GtfsReader(f, self.parse_stop_time):
@@ -148,7 +150,9 @@ class GtfsFilesReader:
                 end_window=str_time(row["end_pickup_drop_off_window"]),
             )
         else:  # elif: location_group_id := row/get("location_group_id"):
-            assert False, "not supported for on-demand bus service using location_group (use ondemand sim.)"
+            assert False, (
+                "not supported for on-demand bus service using location_group (use ondemand sim.)"
+            )
 
     def parse_trip(self, row: typing.Dict[str, str]):
         return row["trip_id"], SingleTrip(

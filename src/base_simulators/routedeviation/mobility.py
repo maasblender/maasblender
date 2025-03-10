@@ -19,7 +19,9 @@ class Car(Mobility):
     events: EventQueue
     _capacity: int
     _stop: typing.Union[StopLike, None]
-    users: typing.Dict[str, User]  # 車両を予約している/停車駅に待機している/車両に乗車している すべての利用者
+    users: typing.Dict[
+        str, User
+    ]  # 車両を予約している/停車駅に待機している/車両に乗車している すべての利用者
 
     def __init__(
         self,
@@ -81,7 +83,10 @@ class Car(Mobility):
 
         for user in self.waiting_users:
             # 現在地が予定とおりの乗車駅である場合、乗客を乗車させる。
-            if user.path.org == self.stop and user.path.departure <= self.current_datetime:
+            if (
+                user.path.org == self.stop
+                and user.path.departure <= self.current_datetime
+            ):
                 self.events.enqueue(
                     DepartedEvent(env=self.env, mobility=self, user=user)
                 )

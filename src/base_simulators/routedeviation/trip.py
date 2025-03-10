@@ -5,8 +5,22 @@ import typing
 import dataclasses
 from datetime import date, timedelta, datetime, time
 
-from core import Trip, Route, Service, StopTime, Stop, StopTimeWithDateTime, Path, TripLocation, \
-    DeviatedStopTimeWithDateTime, TemporaryStop, User, AbstractStopTime, StopLike, AbstractStopTimeWithDateTime
+from core import (
+    Trip,
+    Route,
+    Service,
+    StopTime,
+    Stop,
+    StopTimeWithDateTime,
+    Path,
+    TripLocation,
+    DeviatedStopTimeWithDateTime,
+    TemporaryStop,
+    User,
+    AbstractStopTime,
+    StopLike,
+    AbstractStopTimeWithDateTime,
+)
 
 T = typing.TypeVar("T")
 
@@ -31,9 +45,7 @@ def _find_stop(
 
 def _find_location(
     stop_times_with: typing.List[AbstractStopTime], loc: TripLocation, at_date: date
-) -> typing.Iterator[
-    tuple[StopTimeWithDateTime, StopTimeWithDateTime]
-]:
+) -> typing.Iterator[tuple[StopTimeWithDateTime, StopTimeWithDateTime]]:
     for loc1, loc2, loc3 in _triplewise(stop_times_with):
         match loc2:
             case StopTime():
@@ -45,14 +57,14 @@ def _find_location(
                         StopTimeWithDateTime(stop_time=loc3, reference_date=at_date),
                     )
             case _:
-                raise TypeError(f"illegal type included in stop_times_with: {type(loc2)=}")
+                raise TypeError(
+                    f"illegal type included in stop_times_with: {type(loc2)=}"
+                )
 
 
 def _find_org(
     stop_times_with: typing.List[AbstractStopTime], org: StopLike, at: date
-) -> typing.Iterator[
-    typing.Tuple[StopTimeWithDateTime, TemporaryStop | None]
-]:
+) -> typing.Iterator[typing.Tuple[StopTimeWithDateTime, TemporaryStop | None]]:
     match org:
         case Stop() as p:
             for stop in _find_stop(stop_times_with, p, at):
@@ -66,9 +78,7 @@ def _find_org(
 
 def _find_dst(
     stop_times_with: typing.List[AbstractStopTime], dst: StopLike, at: date
-) -> typing.Iterator[
-    typing.Tuple[TemporaryStop | None, StopTimeWithDateTime]
-]:
+) -> typing.Iterator[typing.Tuple[TemporaryStop | None, StopTimeWithDateTime]]:
     match dst:
         case Stop() as p:
             for stop in _find_stop(stop_times_with, p, at):
@@ -81,16 +91,28 @@ def _find_dst(
 
 
 def _get_paths(
-    stop_times_with: typing.List[AbstractStopTime], org: StopLike, dst: StopLike, at: date
+    stop_times_with: typing.List[AbstractStopTime],
+    org: StopLike,
+    dst: StopLike,
+    at: date,
 ) -> typing.Iterator[Path]:
     for stop_time_org, tstop_org in _find_org(stop_times_with, org, at):
         for tstop_dst, stop_time_dst in _find_dst(stop_times_with, dst, at):
             if stop_time_org.departure < stop_time_dst.arrival:
-                yield Path(pick_up=stop_time_org, drop_off=stop_time_dst, pick_up_stop=tstop_org, drop_off_stop=tstop_dst)
+                yield Path(
+                    pick_up=stop_time_org,
+                    drop_off=stop_time_dst,
+                    pick_up_stop=tstop_org,
+                    drop_off_stop=tstop_dst,
+                )
 
 
 def get_deviated_stops(
-        location_id: str, departure: timedelta, arrival: timedelta, at_date: date, users: typing.Dict[str, User]
+    location_id: str,
+    departure: timedelta,
+    arrival: timedelta,
+    at_date: date,
+    users: typing.Dict[str, User],
 ) -> typing.List[DeviatedStopTimeWithDateTime]:
     tstops: typing.List[TemporaryStop] = []
     for user in users.values():
@@ -127,11 +149,19 @@ class SingleTrip(Trip):
 
     @property
     def stop_times(self) -> typing.List[StopTime]:
-        return [stop_time for stop_time in self.stop_times_with if isinstance(stop_time, StopTime)]
+        return [
+            stop_time
+            for stop_time in self.stop_times_with
+            if isinstance(stop_time, StopTime)
+        ]
 
     @property
     def locations(self) -> typing.List[TripLocation]:
-        return [stop_time for stop_time in self.stop_times_with if isinstance(stop_time, TripLocation)]
+        return [
+            stop_time
+            for stop_time in self.stop_times_with
+            if isinstance(stop_time, TripLocation)
+        ]
 
     @property
     def stops(self) -> typing.List[Stop]:
@@ -149,17 +179,25 @@ class SingleTrip(Trip):
     def iter_stop_times_at(
         self, at_date: date, users: typing.Dict[str, User]
     ) -> typing.Iterator[AbstractStopTimeWithDateTime]:
-        yield StopTimeWithDateTime(stop_time=self.stop_times_with[0], reference_date=at_date)
+        yield StopTimeWithDateTime(
+            stop_time=self.stop_times_with[0], reference_date=at_date
+        )
         for loc1, loc2, loc3 in _triplewise(self.stop_times_with):
             match loc2:
                 case StopTime() as p:
                     yield StopTimeWithDateTime(stop_time=p, reference_date=at_date)
                 case TripLocation() as p:
-                    tstops = get_deviated_stops(p.location_id, loc1.departure, loc3.arrival, at_date, users)
+                    tstops = get_deviated_stops(
+                        p.location_id, loc1.departure, loc3.arrival, at_date, users
+                    )
                     yield from tstops
                 case _:
-                    raise TypeError(f"illegal type included in stop_times_with: {type(loc2)=}")
-        yield StopTimeWithDateTime(stop_time=self.stop_times_with[-1], reference_date=at_date)
+                    raise TypeError(
+                        f"illegal type included in stop_times_with: {type(loc2)=}"
+                    )
+        yield StopTimeWithDateTime(
+            stop_time=self.stop_times_with[-1], reference_date=at_date
+        )
 
     def start_time(self, at: date):
         return list(self.stop_times_at(at))[0].arrival
@@ -195,11 +233,21 @@ class BlockTrip(Trip):
 
     @property
     def stop_times(self) -> typing.List[StopTime]:
-        return [stop_time for trip in self.trips for stop_time in trip.stop_times if isinstance(stop_time, StopTime)]
+        return [
+            stop_time
+            for trip in self.trips
+            for stop_time in trip.stop_times
+            if isinstance(stop_time, StopTime)
+        ]
 
     @property
     def locations(self) -> typing.List[TripLocation]:
-        return [stop_time for trip in self.trips for stop_time in trip.stop_times if isinstance(stop_time, TripLocation)]
+        return [
+            stop_time
+            for trip in self.trips
+            for stop_time in trip.stop_times
+            if isinstance(stop_time, TripLocation)
+        ]
 
     @property
     def stops(self) -> typing.List[Stop]:
@@ -229,13 +277,19 @@ class BlockTrip(Trip):
                 case StopTime() as p:
                     yield StopTimeWithDateTime(stop_time=p, reference_date=at_date)
                 case TripLocation() as p:
-                    tstops = get_deviated_stops(p.location_id, loc1.departure, loc3.arrival, at_date, users)
+                    tstops = get_deviated_stops(
+                        p.location_id, loc1.departure, loc3.arrival, at_date, users
+                    )
                     yield from tstops
                 case _:
-                    raise TypeError(f"illegal type included in stop_times_with: {type(loc2)=}")
-        yield StopTimeWithDateTime(stop_time=stop_times_with[-1], reference_date=at_date)
+                    raise TypeError(
+                        f"illegal type included in stop_times_with: {type(loc2)=}"
+                    )
+        yield StopTimeWithDateTime(
+            stop_time=stop_times_with[-1], reference_date=at_date
+        )
 
-    def stop_times_with(self,  at: date) -> typing.List[AbstractStopTime]:
+    def stop_times_with(self, at: date) -> typing.List[AbstractStopTime]:
         return [
             stop_time
             for trip in self.trips

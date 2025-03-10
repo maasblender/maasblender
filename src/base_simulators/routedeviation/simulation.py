@@ -86,7 +86,9 @@ class Simulation:
         self.env.step()
         return self.env.now
 
-    def _to_stop_like(self, location_id: str, lat: float = 0, lng: float = 0) -> StopLike:
+    def _to_stop_like(
+        self, location_id: str, lat: float = 0, lng: float = 0
+    ) -> StopLike:
         stop: StopLike = self.stops.get(location_id)
         if not stop:
             loc = self.locations.get(location_id)
@@ -96,7 +98,9 @@ class Simulation:
     def reservable(self, org_id: str, dst_id: str):
         stop_org = self._to_stop_like(org_id)
         stop_dst = self._to_stop_like(dst_id)
-        if mobility := self.car_manager.earliest_mobility(stop_org, stop_dst, self.env.now):
+        if mobility := self.car_manager.earliest_mobility(
+            stop_org, stop_dst, self.env.now
+        ):
             return mobility.is_reservable(
                 mobility.earliest_path(stop_org, stop_dst, self.env.now)
             )

@@ -3,7 +3,7 @@
 import typing
 
 
-from core import EventType, Mobility, User, Stop, TemporaryStop
+from core import EventType, Mobility, User
 from environment import Environment
 
 
