@@ -100,9 +100,9 @@ async def setup(settings: query.Setup):
                 for stop_b, distance in zip(matrix["stops"], row):
                     if stop_a == stop_b:
                         continue
-                    assert (
-                        distance >= 0
-                    ), f"distance must not negative: {distance}, {stop_a} -> {stop_b}"
+                    assert distance >= 0, (
+                        f"distance must not negative: {distance}, {stop_a} -> {stop_b}"
+                    )
                     network.add_edge(stop_a, stop_b, distance / settings.mobility_speed)
         elif settings.network.filename:
             ref = settings.input_files[1]
@@ -115,9 +115,9 @@ async def setup(settings: query.Setup):
                 for stop_b, distance in zip(matrix["stops"], row):
                     if stop_a == stop_b:
                         continue
-                    assert (
-                        distance >= 0
-                    ), f"distance must not negative: {distance}, {stop_a} -> {stop_b}"
+                    assert distance >= 0, (
+                        f"distance must not negative: {distance}, {stop_a} -> {stop_b}"
+                    )
                     network.add_edge(stop_a, stop_b, distance / settings.mobility_speed)
         else:
             raise fastapi.HTTPException(

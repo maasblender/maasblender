@@ -46,7 +46,9 @@ class GtfsFlexFilesReader:
         }.items():
             if filename in archive.namelist():
                 with archive.open(filename) as f:
-                    for row in csv.DictReader(io.TextIOWrapper(f, encoding="utf-8-sig")):
+                    for row in csv.DictReader(
+                        io.TextIOWrapper(f, encoding="utf-8-sig")
+                    ):
                         parse(row)
         return self
 

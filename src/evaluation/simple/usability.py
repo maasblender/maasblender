@@ -95,15 +95,19 @@ class UsabilityEvaluator:
     ):
         org = plans[0].org
         dst = plans[0].dst
-        assert all(
-            near_locations(plan.org, org, delta=1e-4) for plan in plans
-        ), json.dumps(
-            [dataclasses.asdict(plan) for plan in plans], ensure_ascii=False, indent=2
+        assert all(near_locations(plan.org, org, delta=1e-4) for plan in plans), (
+            json.dumps(
+                [dataclasses.asdict(plan) for plan in plans],
+                ensure_ascii=False,
+                indent=2,
+            )
         )
-        assert all(
-            near_locations(plan.dst, dst, delta=1e-4) for plan in plans
-        ), json.dumps(
-            [dataclasses.asdict(plan) for plan in plans], ensure_ascii=False, indent=2
+        assert all(near_locations(plan.dst, dst, delta=1e-4) for plan in plans), (
+            json.dumps(
+                [dataclasses.asdict(plan) for plan in plans],
+                ensure_ascii=False,
+                indent=2,
+            )
         )
 
         result = {

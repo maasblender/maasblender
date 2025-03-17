@@ -98,9 +98,9 @@ class Simulation:
 
     def _depart(self, user_id: str, demand_id: str):
         # This user only needs to reserve a vehicle just before departure, so it must not be reserved at this time.
-        assert (
-            user_id in self._reservations
-        ), f"departing user must be reserved: {user_id=}, {self._reservations=}"
+        assert user_id in self._reservations, (
+            f"departing user must be reserved: {user_id=}, {self._reservations=}"
+        )
         reservation = self._reservations.pop(user_id)
         assert (
             reservation.dept >= self.env.now

@@ -155,7 +155,11 @@ async def get_walking_speed(setting: query.Setup):
         try:
             with open(env.OPENTRIPPLANNER_VOLUME_DIR / "router-config.json", "r") as fd:
                 config = json.load(fd)
-            walk_speed = config.get("routingDefaults", {}).get("walk", {}).get("speed", walk_speed)
+            walk_speed = (
+                config.get("routingDefaults", {})
+                .get("walk", {})
+                .get("speed", walk_speed)
+            )
         except Exception:  # Default value if the file cannot be read
             logger.warning(
                 f"failed to read {env.OPENTRIPPLANNER_VOLUME_DIR}/router-config.json"
