@@ -5,7 +5,7 @@ on:
     branches:
     paths: 'src/**'
   pull_request:
-    types: [opened, reopened, edited]
+    types: [opened, reopened, edited, synchronize]
     branches: main
     paths: 'src/**'
   workflow_dispatch:
@@ -39,11 +39,11 @@ jobs:
       - name: Get allowed licence list
         working-directory: ci
         run: |
-          LICENSE_LIST=`cat allowed-license.lst | awk '{if($0 ~ /^[a-zA-Z].*/)print;}' | tr '\n' ';'`
+          LICENSE_LIST=$(awk '!/^\s*#/' allowed-license.lst | tr '\n' ';')
           echo "license=$LICENSE_LIST" >> $GITHUB_ENV
       - name: Install and run pip-licenses          
         working-directory: ${{ matrix.target }}
         run: |
           pip install -r requirements.txt
-          pip install -U pip-licenses 
+          pip install -U pip-licenses-cli
           pip-licenses --allow-only="${{ env.license }}"

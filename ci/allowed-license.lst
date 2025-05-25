@@ -1,10 +1,13 @@
-# These license names are used for pip-license (https://github.com/raimon49/pip-licenses) and must use same word presented in pip license information.
-# We identified a line with non-alphabetical characters in head as comment.
+# These license names are used for pip-licenses-cli (https://github.com/stefan6419846/pip-licenses-cli) and must use same word presented in pip license information.
+# We identified a line with # in head as comment.
 MIT License
 MIT
 BSD License
+BSD-3-Clause
+3-Clause BSD License
 Apache-2.0
 Apache Software License
 Python Software Foundation License
+PSF-2.0
 Mozilla Public License 2.0 (MPL 2.0)
 
