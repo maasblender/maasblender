@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import dataclasses
 import logging
+import time
 import typing
 from datetime import datetime, timedelta
+import itertools
 import functools
 
 import simpy
@@ -48,6 +50,16 @@ class Schedule:
 
 
 @dataclasses.dataclass
+class TimeoutWatchDog:
+    limit_seconds: float  # [sec]
+    start_time: float = dataclasses.field(default_factory=time.perf_counter)
+
+    def limit_exceeded(self):
+        elapsed = time.perf_counter() - self.start_time
+        return elapsed > self.limit_seconds
+
+
+@dataclasses.dataclass
 class OnOff:
     on: typing.Optional[User] = None
     off: typing.Optional[User] = None
@@ -67,16 +79,19 @@ class Car(Mobility):
         capacity: int,
         trip: Trip,
         stop: Stop,
+        board_time: timedelta,
+        max_delay_time: timedelta,
     ):
         super().__init__(mobility_id=mobility_id, trip=trip)
         self.network = network
         self.events = queue
         self.capacity = capacity
         self.schedule = Schedule()
-        self.max_delay_time = timedelta(minutes=30)
         self._last_arrival_time = self.env.datetime_now
         self._initial_stop = stop
         self._stop: typing.Optional[Stop] = stop
+        self._board_time: timedelta = board_time
+        self._max_delay_time: timedelta = max_delay_time
         self._reserved_users: typing.Dict[str, User] = {}
         self._waiting_users: typing.Dict[str, User] = {}
         self._passengers: typing.Dict[str, User] = {}
@@ -101,6 +116,8 @@ class Car(Mobility):
             f"capacity={self.capacity}",
             f"trip={self._trip}",
             f"stop={self.stop}",
+            f"board_time={self._board_time}",
+            f"max_delay_time={self._max_delay_time}",
             f"schedule={self.schedule}",
             f"_last_arrival_time={self._last_arrival_time}",
             f"_reserved_users={self._reserved_users}",
@@ -135,7 +152,7 @@ class Car(Mobility):
 
     @property
     def board_time(self):
-        return timedelta()
+        return self._board_time
 
     @property
     def moving(self):
@@ -318,7 +335,7 @@ class Car(Mobility):
             time_dimension.CumulVar(dst_index).SetRange(
                 self.env.elapsed_secs(user.desired_dept + user.ideal_duration),
                 self.env.elapsed_secs(
-                    user.desired_dept + user.ideal_duration + self.max_delay_time
+                    user.desired_dept + user.ideal_duration + self._max_delay_time
                 ),
             )
 
@@ -338,15 +355,14 @@ class Car(Mobility):
             node_onoff.append(OnOff(off=user))
 
             # Time window constraint
-            # ToDo: use dept instead of desire_dept 予約したら dept に固定したい。早着しない。
             time_dimension.CumulVar(org_index).SetRange(
                 self.env.elapsed_secs(user.desired_dept),
-                self.env.elapsed_secs(user.desired_dept + self.max_delay_time),
+                self.env.elapsed_secs(user.desired_dept + self._max_delay_time),
             )
             time_dimension.CumulVar(dst_index).SetRange(
                 self.env.elapsed_secs(user.desired_dept + user.ideal_duration),
                 self.env.elapsed_secs(
-                    user.desired_dept + user.ideal_duration + self.max_delay_time
+                    user.desired_dept + user.ideal_duration + self._max_delay_time
                 ),
             )
 
@@ -409,6 +425,69 @@ class Car(Mobility):
 
         return Route(route)
 
+    def routes_appended_new_user(
+        self, user: User, timeout_seconds: int = 30, max_stop_time_length: int = 20
+    ):
+        watchdog = TimeoutWatchDog(limit_seconds=float(timeout_seconds))
+        routes = [
+            Route(
+                stop_times=[
+                    StopTime(stop=passenger.dst, off=[passenger])
+                    for passenger in passengers
+                ]
+            )
+            for passengers in itertools.permutations(self.passengers)
+        ]
+        for user_ in (
+            self._waiting_users | self._reserved_users | {user.user_id: user}
+        ).values():
+            new_routes = []
+            for route in routes:
+                if watchdog.limit_exceeded():
+                    logger.warning(
+                        f"abort calculation for appending a new user={user.user_id} to the car={self}: elapsed more than {watchdog.limit_seconds} seconds",
+                    )
+                    return []
+
+                for i, k in itertools.combinations_with_replacement(
+                    range(len(route.stop_times) + 1), 2
+                ):
+                    stop_times = [
+                        StopTime(
+                            stop=stop_time.stop, on=stop_time.on, off=stop_time.off
+                        )
+                        for stop_time in route.stop_times
+                    ]
+                    stop_times.insert(k, StopTime(stop=user_.dst, off=[user_]))
+                    stop_times.insert(i, StopTime(stop=user_.org, on=[user_]))
+
+                    r = Route(stop_times)
+                    # exclude the duplicated pattern
+                    if r in new_routes:
+                        continue
+                    # exclude the obviously inefficient pattern
+                    if r.inefficient(self.passengers):
+                        continue
+                    # exclude the pattern that exceeds capacity
+                    if len(self.passengers) + r.max_passengers > self.capacity:
+                        continue
+                    # exclude the pattern that exceeds max delay
+                    if any(
+                        value > self._max_delay_time
+                        for value in Evaluation(self, r).values
+                    ):
+                        continue
+                    if len(r.stop_times) > max_stop_time_length:
+                        logger.debug(
+                            f"skip a route for appending a new user={user.user_id} to the car={self}: exceeded max stop times length={max_stop_time_length}."
+                        )
+                        continue
+                    new_routes.append(r)
+
+            routes = list(new_routes)
+
+        return routes
+
     def reserve(self, user: User, schedule: typing.List[StopTime]):
         # Ensure that the user has not already reserved
         assert user.user_id not in self.users
@@ -463,8 +542,24 @@ class Route:
             return False
         return self.stop_times == other.stop_times
 
-    # def __hash__(self):
-    #     return hash(tuple(self.stop_times))
+    @property
+    def max_passengers(self):
+        return max(
+            itertools.accumulate(
+                len(stop_time.on) - len(stop_time.off) for stop_time in self.stop_times
+            )
+        )
+
+    def inefficient(self, passengers: typing.Collection[User]):
+        passengers = set(passengers)
+        for stop_time in self.stop_times:
+            for user in passengers:
+                # clearly inefficient for a passenger not to get off where he/she is scheduled to get off
+                if user.dst == stop_time.stop and user not in stop_time.off:
+                    return True
+            passengers |= set(stop_time.on)
+            passengers -= set(stop_time.off)
+        return False
 
 
 @dataclasses.dataclass
@@ -486,9 +581,6 @@ class StopTime:
             )
         )
 
-    # def __hash__(self):
-    #     return hash((self.stop, frozenset(self.on), frozenset(self.off)))
-
     def __add__(self, other: StopTime):
         assert self.stop is other.stop, (self.stop, other.stop)
         return StopTime(
@@ -496,3 +588,166 @@ class StopTime:
             on=sorted(set(self.on + other.on), key=(self.on + other.on).index),
             off=sorted(set(self.off + other.off), key=(self.off + other.off).index),
         )
+
+
+class Evaluation:
+    def __init__(self, car: Car, plan: Route):
+        self.car = car
+        self.stop_times = plan.stop_times
+        self.values = [timedelta(days=1)]
+        self.value = timedelta(days=1)
+
+        start_window, end_window = car.window()
+        # unavailable
+        if start_window is None:
+            return
+
+        if to := self.car.moving:
+            # If on moving, set to the next stop and time.
+            previous = StopTime(stop=to.stop, departure=to.arrival)
+        else:
+            # If not on moving, set to the current stop and time.
+            now = self.car.env.datetime_now
+            if now >= start_window:
+                previous = StopTime(stop=car.stop, departure=now)
+            else:
+                # wait till start time
+                previous = StopTime(stop=car.stop, departure=start_window)
+
+        for previous, stop_time in zip([previous] + plan.stop_times, plan.stop_times):
+            stop_time.arrival = previous.departure + timedelta(
+                minutes=self.car.network.duration(
+                    previous.stop.stop_id, stop_time.stop.stop_id
+                )
+            )
+            stop_time.departure = max(
+                [
+                    stop_time.arrival
+                    + self.car.board_time * bool(stop_time.off)
+                    + self.car.board_time * bool(stop_time.on)
+                ]
+                + [user.desired_dept + self.car.board_time for user in stop_time.on]
+            )
+
+        if plan.stop_times[-1].arrival <= end_window:
+            self.values = [
+                stop_time.arrival
+                - user.desired_dept
+                + self.car.board_time
+                - user.ideal_duration
+                for stop_time in plan.stop_times
+                for user in stop_time.off
+            ]
+            self.value = sum(self.values, timedelta()) / len(self.values)
+
+    def __lt__(self, other: Evaluation):
+        return self.value < other.value
+
+
+class CarSetting(typing.NamedTuple):
+    mobility_id: str
+    capacity: int
+    trip: Trip
+    stop: Stop
+
+
+class CarManager:
+    """responsible for processing across multiple on-demand buses."""
+
+    def __init__(
+        self,
+        network: Network,
+        event_queue: EventQueue,
+        enable_ortools: bool,
+        board_time: float,
+        max_delay_time: float,
+        settings: typing.Collection[CarSetting],
+        max_calculation_seconds: int = 30,
+        max_calculation_stop_times_length: int = 10,
+    ):
+        self.network = network
+        self.event_queue = event_queue
+        self.board_time: timedelta = timedelta(minutes=board_time)
+        self.enable_ortools = enable_ortools
+        self.max_delay_time: timedelta = timedelta(minutes=max_delay_time)
+        self.max_calculation_seconds = max_calculation_seconds
+        self.max_calculation_stop_times_length = max_calculation_stop_times_length
+        self.mobilities: typing.Dict[str, Car] = {
+            setting.mobility_id: Car(
+                network=self.network,
+                queue=self.event_queue,
+                mobility_id=setting.mobility_id,
+                capacity=setting.capacity,
+                trip=setting.trip,
+                stop=setting.stop,
+                board_time=self.board_time,
+                max_delay_time=self.max_delay_time,
+            )
+            for setting in settings
+        }
+
+    @property
+    def env(self):
+        return self.event_queue.env
+
+    def depart(self, user_id: str):
+        for mobility in self.mobilities.values():
+            if user := mobility.find_reserved_user(user_id):
+                mobility.user_ready(user)
+                return user
+
+    def reserve(self, user: User):
+        self.env.process(self._reserve(user))
+
+    def _reserve(self, user: User):
+        yield self.env.timeout(0)
+
+        if solution := self.minimum_delay(user):
+            departure = None
+            for stop_time in solution.stop_times:
+                if user in stop_time.on:
+                    departure = stop_time.departure - self.board_time
+                if user in stop_time.off:
+                    arrival = stop_time.arrival + self.board_time
+                    assert departure
+                    self.event_queue.reserved(
+                        mobility=solution.car,
+                        user=user,
+                        departure=departure,
+                        arrival=arrival,
+                    )
+
+            solution.car.reserve(user=user, schedule=solution.stop_times)
+
+        else:
+            self.event_queue.reserve_failed(user)
+
+    def minimum_delay(self, user: User) -> Evaluation | None:
+        if self.enable_ortools:
+            return self.minimum_delay_by_ortools(user)
+        else:
+            return self.minimum_delay_by_brute_force(user)
+
+    def minimum_delay_by_ortools(self, user: User) -> Evaluation | None:
+        return min(
+            (
+                Evaluation(mobility, route)
+                for mobility in self.mobilities.values()
+                if (route := mobility.solve_new_route(user))
+            ),
+            default=None,
+        )
+
+    def minimum_delay_by_brute_force(self, user: User) -> Evaluation | None:
+        delays = [
+            Evaluation(car, route)
+            for car in self.mobilities.values()
+            for route in car.routes_appended_new_user(
+                user,
+                timeout_seconds=self.max_calculation_seconds,
+                max_stop_time_length=self.max_calculation_stop_times_length,
+            )
+        ]
+
+        if len(delays):
+            return min(delays)

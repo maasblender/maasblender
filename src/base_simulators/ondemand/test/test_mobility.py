@@ -7,8 +7,7 @@ from unittest.mock import Mock
 
 from core import User, Stop, Group, Trip, Service, StopTime as flex_StopTime, Network
 from environment import Environment
-from mobility import Car, Route, StopTime
-from reservation import CarManager, CarSetting, Evaluation
+from mobility import Car, Route, StopTime, CarManager, CarSetting, Evaluation
 
 base_datetime = datetime(year=2022, month=1, day=1)
 stops = [
@@ -51,6 +50,8 @@ class RoutingTestCase(TestCase):
     def setUp(self):
         self.base_datetime = base_datetime
         self.network = Network()
+        self.board_time = 0
+        self.max_delay_time = 30
         self.network.add_edge(stops[0].stop_id, stops[1].stop_id, 6, with_rev=True)
         self.network.add_edge(stops[0].stop_id, stops[2].stop_id, 8, with_rev=True)
         self.network.add_edge(stops[1].stop_id, stops[2].stop_id, 10, with_rev=True)
@@ -61,6 +62,8 @@ class RoutingTestCase(TestCase):
             capacity=1,
             trip=trips[0],
             stop=stops[0],
+            board_time=timedelta(minutes=self.board_time),
+            max_delay_time=timedelta(minutes=self.max_delay_time),
         )
         self.mobility2 = Car(
             mobility_id=...,
@@ -69,6 +72,8 @@ class RoutingTestCase(TestCase):
             capacity=4,
             trip=trips[1],
             stop=stops[0],
+            board_time=timedelta(minutes=self.board_time),
+            max_delay_time=timedelta(minutes=self.max_delay_time),
         )
 
     def test_find_a_route(self):
@@ -319,6 +324,8 @@ class RoutingTestCase(TestCase):
 class EvaluationTestCase(TestCase):
     def setUp(self):
         self.base_datetime = base_datetime
+        self.board_time = 0
+        self.max_delay_time = 30
         self.network = Network()
         self.network.add_edge(stops[0].stop_id, stops[1].stop_id, 5, with_rev=True)
         self.network.add_edge(stops[0].stop_id, stops[2].stop_id, 7, with_rev=True)
@@ -330,6 +337,8 @@ class EvaluationTestCase(TestCase):
             capacity=1,
             trip=trips[0],
             stop=stops[0],
+            board_time=timedelta(minutes=self.board_time),
+            max_delay_time=timedelta(minutes=self.max_delay_time),
         )
 
     def test_ideal_time_when_only_one_user(self):
@@ -414,7 +423,7 @@ class EvaluationTestCase(TestCase):
             ),
         )
 
-        expected = [self.mobility.max_delay_time]
+        expected = [self.mobility._max_delay_time]
 
         self.assertLessEqual(expected, actual.values)
         self.assertLessEqual(sum(expected, timedelta()), actual.value)
@@ -471,7 +480,7 @@ class EvaluationTestCase(TestCase):
             ),
         )
 
-        expected = [self.mobility.max_delay_time]
+        expected = [self.mobility._max_delay_time]
 
         self.assertLessEqual(expected, actual.values)
         self.assertLessEqual(sum(expected, timedelta()), actual.value)
@@ -595,6 +604,7 @@ class EvaluationTestCase(TestCase):
 class PlanningTestCase(TestCase):
     def setUp(self):
         self.base_datetime = base_datetime
+        self.board_time = 0
         self.max_delay_time = 30
         self.network = Network()
         self.network.add_edge(stops[0].stop_id, stops[1].stop_id, 30, with_rev=True)
@@ -608,7 +618,9 @@ class PlanningTestCase(TestCase):
             settings=[
                 CarSetting(mobility_id="M001", capacity=1, trip=trips[0], stop=stops[0])
             ],
+            enable_ortools=True,
             max_delay_time=self.max_delay_time,
+            board_time=self.board_time,
         )
         user = User(
             user_id="User",
@@ -637,7 +649,9 @@ class PlanningTestCase(TestCase):
             settings=[
                 CarSetting(mobility_id="M001", capacity=1, trip=trips[0], stop=stops[0])
             ],
+            enable_ortools=True,
             max_delay_time=self.max_delay_time,
+            board_time=self.board_time,
         )
         desired = trips[0].stop_time.end_window
         user = User(
@@ -663,7 +677,9 @@ class PlanningTestCase(TestCase):
             settings=[
                 CarSetting(mobility_id="M001", capacity=1, trip=trips[0], stop=stops[0])
             ],
+            enable_ortools=True,
             max_delay_time=self.max_delay_time,
+            board_time=self.board_time,
         )
         desired = trips[0].stop_time.start_window + timedelta(days=2)
         user = User(
@@ -689,7 +705,9 @@ class PlanningTestCase(TestCase):
             settings=[
                 CarSetting(mobility_id="M001", capacity=1, trip=trips[2], stop=stops[0])
             ],
+            enable_ortools=True,
             max_delay_time=self.max_delay_time,
+            board_time=self.board_time,
         )
         desired = trips[2].stop_time.end_window - timedelta(minutes=70)
         user = User(
@@ -720,7 +738,9 @@ class PlanningTestCase(TestCase):
             settings=[
                 CarSetting(mobility_id="M001", capacity=1, trip=trips[2], stop=stops[0])
             ],
+            enable_ortools=True,
             max_delay_time=self.max_delay_time,
+            board_time=self.board_time,
         )
         desired = (
             trips[2].stop_time.end_window - timedelta(minutes=50) - timedelta(days=1)
@@ -748,7 +768,9 @@ class PlanningTestCase(TestCase):
             settings=[
                 CarSetting(mobility_id="M001", capacity=1, trip=trips[0], stop=stops[0])
             ],
+            enable_ortools=True,
             max_delay_time=self.max_delay_time,
+            board_time=self.board_time,
         )
         user1 = User(
             user_id="User1",
@@ -796,7 +818,9 @@ class PlanningTestCase(TestCase):
                     mobility_id="M002", capacity=1, trip=trips[0], stop=stops[1]
                 ),
             ],
+            enable_ortools=True,
             max_delay_time=self.max_delay_time,
+            board_time=self.board_time,
         )
         user1 = User(
             user_id="User1",

@@ -130,7 +130,11 @@ async def setup(settings: query.Setup):
         start_time=datetime.datetime.strptime(settings.reference_time, "%Y%m%d"),
         network=network,
         trips=trips,
+        enable_ortools=settings.enable_ortools,
+        board_time=settings.board_time,
         max_delay_time=settings.max_delay_time,
+        max_calculation_seconds=settings.max_calculation_seconds,
+        max_calculation_stop_times_length=settings.max_calculation_stop_times_length,
         settings=[
             CarSetting(
                 mobility_id=mobility.mobility_id,

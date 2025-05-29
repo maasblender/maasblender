@@ -27,6 +27,7 @@ class Setup(BaseModel):
     reference_time: constr(min_length=8, max_length=8)
     input_files: list[InputFilesItem] = Field(..., min_items=1, max_items=2)
     network: InputFilesItem
+    enable_ortools: bool = True
     board_time: float | None
     max_delay_time: float | None
     mobility_speed: float = 20.0 * 1000 / 60  # [m/min]
