@@ -5,6 +5,7 @@ import pathlib
 import unittest
 import unittest.mock
 
+from jschema.query import EvaluationTiming
 from mblib.io.result import FileResultWriter
 from core import Location
 from planner import Route, Trip
@@ -36,6 +37,7 @@ class EvaluationTestCase(unittest.IsolatedAsyncioTestCase):
             FileResultWriter(TEST_FILE),
             "",
             "",
+            timing=EvaluationTiming.ON_DEPARTURE,
         )
         self.user_id = "U_001"
         plan = unittest.mock.AsyncMock()

@@ -8,7 +8,7 @@ from simpy import Environment
 from mblib.io.result import ResultWriter
 from planner import Location, Route, Planner, ReservableChecker
 from event import EventQueue, DemandEvent
-from src.evaluation.simple.jschema.query import EvaluationTiming
+from jschema.query import EvaluationTiming
 
 
 def near_locations(loc1: Location, loc2: Location, *, delta: float):
