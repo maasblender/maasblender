@@ -8,6 +8,7 @@ from simpy import Environment
 from mblib.io.result import ResultWriter
 from planner import Location, Route, Planner, ReservableChecker
 from event import EventQueue, DemandEvent
+from src.evaluation.simple.jschema.query import EvaluationTiming
 
 
 def near_locations(loc1: Location, loc2: Location, *, delta: float):
@@ -21,13 +22,15 @@ def near_locations(loc1: Location, loc2: Location, *, delta: float):
 
 class UsabilityEvaluator:
     logger: ResultWriter
-    planner: Planner | None
-    reserver: ReservableChecker | None
+    planner: Planner
+    reserver: ReservableChecker
+    timing: EvaluationTiming
 
-    def __init__(self, logger: ResultWriter, planner: str, reservable: str):
+    def __init__(self, logger: ResultWriter, planner: str, reservable: str, timing: EvaluationTiming):
         self.logger = logger
         self.planner = Planner(planner)
         self.reserver = ReservableChecker(reservable)
+        self.timing = timing
         self.env = Environment()
         self.event_queue = EventQueue(self.env)
 
@@ -61,7 +64,11 @@ class UsabilityEvaluator:
         self.env.process(self._demand(demand))
 
     def _demand(self, demand: DemandEvent):
-        yield self.env.timeout(demand.dept - self.env.now)
+        match self.timing:
+            case EvaluationTiming.ON_DEPARTURE:
+                yield self.env.timeout(demand.dept - self.env.now)
+            case EvaluationTiming.ON_DEMAND:
+                yield self.env.timeout(0)
         self.event_queue.demand(demand)
 
     async def step(self):

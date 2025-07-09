@@ -66,6 +66,7 @@ async def setup(settings: query.Setup):
         writer,
         planner=str(settings.planner.endpoint),
         reservable=str(settings.reservable.endpoint),
+        timing=settings.evaluation_timing,
     )
     return response.Message(message="successfully configured.")
 
