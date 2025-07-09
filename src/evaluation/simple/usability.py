@@ -26,7 +26,13 @@ class UsabilityEvaluator:
     reserver: ReservableChecker
     timing: EvaluationTiming
 
-    def __init__(self, logger: ResultWriter, planner: str, reservable: str, timing: EvaluationTiming):
+    def __init__(
+        self,
+        logger: ResultWriter,
+        planner: str,
+        reservable: str,
+        timing: EvaluationTiming,
+    ):
         self.logger = logger
         self.planner = Planner(planner)
         self.reserver = ReservableChecker(reservable)

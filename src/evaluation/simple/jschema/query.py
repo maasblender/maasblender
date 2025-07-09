@@ -19,8 +19,8 @@ class ReservableSetting(BaseModel):
 
 
 class EvaluationTiming(str, Enum):
-    ON_DEPARTURE = 'departure'
-    ON_DEMAND = 'demand'
+    ON_DEPARTURE = "departure"
+    ON_DEMAND = "demand"
 
 
 class Setup(BaseModel):
