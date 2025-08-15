@@ -2,15 +2,17 @@
 # SPDX-License-Identifier: Apache-2.0
 import asyncio
 import datetime
+import json  # 追加
 import logging
 import re
 import typing
 
-from gql import Client, gql
-from gql.transport.aiohttp import AIOHTTPTransport, log as aiohttp_logger
 import aiohttp
-
+from config import env  # 追加
 from core import Location, Path, Trip, calc_distance
+from gql import Client, gql  # 追加
+from gql.transport.aiohttp import AIOHTTPTransport  # 追加
+from gql.transport.aiohttp import log as aiohttp_logger  # 追加
 from jschema.response import DistanceMatrix
 
 logger = logging.getLogger(__name__)
@@ -18,8 +20,11 @@ aiohttp_logger.setLevel(logging.WARNING)
 pattern = re.compile(r".+:(.*)")
 
 
-def id_from_gtfs_id(gtfs_id: str) -> str:
-    return pattern.match(gtfs_id).groups()[0]
+def id_from_gtfs_id(gtfs_id: str) -> str:  # 追加
+    match = pattern.match(gtfs_id)
+    if match:
+        return match.groups()[0]
+    return gtfs_id  # fallback
 
 
 class OpenTripPlanner:
@@ -33,6 +38,30 @@ class OpenTripPlanner:
     ):
         super().__init__()
         self.endpoint = endpoint
+
+        # 追加
+        self.name_to_station_id = {}
+
+        gbfs_dir = env.OPENTRIPPLANNER_GBFS_DIR
+        for zip_dir in gbfs_dir.iterdir():
+            if not zip_dir.is_dir():
+                continue
+            json_path = zip_dir / "station_information.json"
+            if json_path.exists():
+                try:
+                    with json_path.open(encoding="utf-8") as f:
+                        station_data = json.load(f)
+                    self.name_to_station_id = {
+                        station["name"]: station["station_id"]
+                        for station in station_data["data"]["stations"]
+                    }
+                    logger.info(f"Loaded station info from: {json_path}")
+                    break  # 最初に見つかった1件だけ使う場合
+                except Exception as e:
+                    logger.warning(f"Failed to read {json_path}: {e}")
+            else:
+                logger.debug(f"No station_information.json found in {zip_dir}")
+
         self.client = Client(
             transport=AIOHTTPTransport(
                 url=f"{endpoint}/otp/routers/default/index/graphql"
@@ -254,34 +283,58 @@ class OpenTripPlanner:
             )
 
     def _leg_to_trip(self, leg: typing.Mapping) -> Trip:
-        service = (
-            "walking"
-            if leg["mode"] == "WALK"
-            else self.services.get(id_from_gtfs_id(leg["agency"]["gtfsId"]))
-        )
-        if not service:
-            raise KeyError(
-                f"unknown agency: {leg['agency']['gtfsId']} (not in {self.services.keys()})"
-            )
+        mode = leg.get("mode")
+        agency = leg.get("agency")
 
-        org = leg["from"]
-        dst = leg["to"]
+        # mode に応じた service の決定
+        if mode == "WALK":
+            service = "walking"
+        elif mode == "BICYCLE":
+            service = "BICYCLE"
+        elif agency and "gtfsId" in agency:
+            agency_id = id_from_gtfs_id(agency["gtfsId"])
+            service = self.services.get(agency_id)
+            if not service:
+                raise KeyError(
+                    f"unknown agency: {agency_id} (not in {list(self.services.keys())})"
+                )
+        else:
+            raise KeyError(f"agency missing or malformed for leg: {leg}")
+
+        # org / dst を _to_location() を使って作成
+        org = self._to_location(leg["from"])
+        dst = self._to_location(leg["to"])
+
         return Trip(
             service=service,
-            org=Location(
-                id_=id_from_gtfs_id(org["stop"]["gtfsId"])
-                if org.get("stop")
-                else org["name"],
-                lat=org["lat"],
-                lng=org["lon"],
-            ),
-            dst=Location(
-                id_=id_from_gtfs_id(dst["stop"]["gtfsId"])
-                if dst.get("stop")
-                else dst["name"],
-                lat=dst["lat"],
-                lng=dst["lon"],
-            ),
-            dept=self._elapsed(org["departureTime"]),
-            arrv=self._elapsed(dst["arrivalTime"]),
+            org=org,
+            dst=dst,
+            dept=self._elapsed(leg["from"]["departureTime"]),
+            arrv=self._elapsed(leg["to"]["arrivalTime"]),
         )
+
+    def _to_location(self, place: dict) -> Location:
+        stop = place.get("stop")
+        if stop:
+            logger.debug(f"stop found: {stop}")
+        else:
+            logger.debug("stop not found")
+
+        if stop and "gtfsId" in stop:
+            id_ = id_from_gtfs_id(stop["gtfsId"])
+            logger.debug(f"Using gtfsId to get id_: {id_}")
+        else:
+            id_ = self.name_to_station_id.get(place["name"], place["name"])
+            logger.debug(
+                f"Using name_to_station_id to get id_: {id_} (from name: {place['name']})"
+            )
+
+        logger.debug(f"Location lat: {place['lat']}, lng: {place['lon']}")
+
+        location = Location(
+            id_=id_,
+            lat=place["lat"],
+            lng=place["lon"],
+        )
+        logger.debug(f"Created Location object: {location}")
+        return location

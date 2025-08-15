@@ -1,32 +1,53 @@
+version: "3.9"
+
 services:
   broker:
-    build: ../../src/simulation_broker
+    build:
+      context: ../../src/simulation_broker
     ports:
       - "3000:80"
 
-  walking:
-    build: ../../src/base_simulators/walking
-
   user_model:
-    build: ../../src/user_model/simple
+    build:
+      context: ../../src/user_model/simple
 
-  favorite_model:
-    build: ../../src/user_model/favorite
+  scenario_generator:
+    build:
+      context: ../../src/scenario/generator
 
-  scenario_historical:
-    build: ../../src/scenario/historical
-
+  scenario_commuter:
+    build:
+      context: ../../src/scenario/commuter
+      
   scheduled:
     build: ../../src/base_simulators/scheduled
     ports:
       - "3001:80"
 
   ondemand:
-    build: ../../src/base_simulators/ondemand
+    build:
+      context: ../../src/base_simulators/ondemand
     ports:
       - "3002:80"
 
   planner:
-    build: ../../src/planner/opentripplanner
+    build:
+      context: ../../src/planner/opentripplanner
     ports:
       - "3010:80"
+
+  walking:
+    build:
+      context: ../../src/base_simulators/walking
+
+  evaluation:
+    build:
+      context: ../../src/evaluation/simple
+    ports:
+      - "3020:80"
+
+  bicycle:
+    build:
+      context: ../../src/base_simulators/oneway
+    ports:
+      - "3003:80"

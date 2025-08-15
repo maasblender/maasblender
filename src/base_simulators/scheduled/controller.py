@@ -7,12 +7,11 @@ import zipfile
 
 import aiohttp
 import fastapi
-
 import gtfs
 from jschema import query, response
 from mblib.io import httputil
 from mblib.io.log import init_logger
-from mblib.jschema import spec, events
+from mblib.jschema import events, spec
 from simulation import Simulation
 
 logger = logging.getLogger(__name__)
@@ -109,6 +108,12 @@ def step():
 
 @app.post("/triggered")
 def triggered(event: query.TriggeredEvent | events.Event):
+    # # [修正] 安全に userId を取り出す
+    # user_id = getattr(getattr(event, "details", None), "userId", "N/A")
+
+    # logger.info(
+    #     f"[TRIGGERED] time={event.time}, type={type(event).__name__}, userId={user_id}"
+    # )
     # expect nothing to happen. just let time forward.
     if sim.env.now < event.time:
         sim.env.run(until=event.time)

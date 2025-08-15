@@ -5,11 +5,10 @@ import math
 import pathlib
 
 import fastapi
-
 from core import Location
 from jschema import query, response
 from mblib.io.log import init_logger
-from mblib.io.result import ResultWriter, HTTPResultWriter, FileResultWriter
+from mblib.io.result import FileResultWriter, HTTPResultWriter, ResultWriter
 from mblib.jschema import events, spec
 from usability import UsabilityEvaluator
 

@@ -1,0 +1,173 @@
+{
+  "broker": {
+    "type": "broker",
+    "details": {
+      "writer": {}
+    }
+  },
+  "walking": {
+    "type": "http",
+    "endpoint": "http://walking",
+    "details": {}
+  },
+  "scenario_generator": {
+    "type": "http",
+    "endpoint": "http://scenario_generator",
+    "details": {
+      "demands": [
+        {
+          "org": {
+            "locationId": "富山駅",
+            "lat": 36.7016913,
+            "lng": 137.21017
+          },
+          "dst": {
+            "locationId": "アピア",
+            "lat": 36.6963384,
+            "lng": 137.2274607
+          },
+          "begin": 553.0,
+          "end": 573.0,
+          "expected_demands": 1
+        }
+      ],
+      "seed": 1,
+      "userIDFormat": "GU_%d"
+    }
+  },
+  "gtfs_maidohaya": {
+    "type": "http",
+    "endpoint": "http://scheduled",
+    "details": {
+      "reference_time": "20250602",
+      "input_files": [
+        {
+          "filename": "gtfs_maidohaya.zip"
+        }
+      ],
+      "mobility": {
+        "capacity": 20
+      }
+    }
+  },
+  "flex": {
+    "type": "http",
+    "endpoint": "http://ondemand",
+    "details": {
+      "reference_time": "20250602",
+      "input_files": [
+        {
+          "filename": "gtfs_flex.zip"
+        }
+      ],
+      "network": {
+        "fetch_url": "http://planner/matrix"
+      },
+      "board_time": 1,
+      "max_delay_time": 10,
+      "mobility_speed": 100,
+      "mobilities": [
+        {
+          "mobility_id": "F_001",
+          "trip_id": "FLEX_1",
+          "capacity": 10,
+          "stop": "A"
+        }
+      ]
+    }
+  },
+  "BICYCLE": {
+    "type": "http",
+    "endpoint": "http://bicycle",
+    "details": {
+      "reference_time": "20250602",
+      "input_files": [
+        {
+          "filename": "gbfs.zip"
+        }
+      ]
+    }
+  },
+  "planner": {
+    "type": "planner",
+    "endpoint": "http://planner",
+    "details": {
+      "otp_config": {
+        "input_files": [
+          {
+            "filename": "otp-config.zip"
+          }
+        ]
+      },
+      "networks": {
+        "gtfs_maidohaya": {
+          "type": "gtfs",
+          "input_files": [
+            {
+              "filename": "gtfs_maidohaya.zip"
+            }
+          ],
+          "agency_id": "7230001002032"
+        },
+        "flex": {
+          "type": "gtfs_flex",
+          "input_files": [
+            {
+              "filename": "gtfs_flex.zip"
+            }
+          ],
+          "mobility_meters_per_minute": 1000,
+          "expected_waiting_time": 5,
+          "start_window": 0,
+          "end_window": 1440
+        },
+        "BICYCLE": {
+          "type": "gbfs",
+          "input_files": [
+            {
+              "filename": "gbfs.zip"
+            }
+          ],
+          "mobility_meters_per_minute": 2000,
+          "expected_waiting_time": 1,
+          "start_window": 0,
+          "end_window": 1440
+        }
+      },
+      "reference_time": "20250602",
+      "walking_meters_per_minute": 30.0,
+      "modes": [
+        {
+          "modes": [{ "mode": "BICYCLE", "qualifier": "RENT" }]
+        },
+        {
+          "modes": [{ "mode": "WALK" }]
+        },
+        {
+          "modes": [{ "mode": "TRANSIT" }]
+        }
+      ]
+    }
+  },
+  "user": {
+    "type": "http",
+    "endpoint": "http://user_model",
+    "details": {
+      "planner": {
+        "endpoint": "http://planner/plan"
+      }
+    }
+  },
+  "evaluation": {
+    "type": "http",
+    "endpoint": "http://evaluation",
+    "details": {
+      "planner": {
+        "endpoint": "http://broker/plan"
+      },
+      "reservable": {
+        "endpoint": "http://broker/reservable"
+      }
+    }
+  }
+}

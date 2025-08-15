@@ -3,11 +3,11 @@
 import dataclasses
 import json
 
+from event import DemandEvent, EventQueue
+from mblib.io.result import ResultWriter
 from simpy import Environment
 
-from mblib.io.result import ResultWriter
-from planner import Location, Route, Planner, ReservableChecker
-from event import EventQueue, DemandEvent
+from planner import Location, Planner, ReservableChecker, Route
 
 
 def near_locations(loc1: Location, loc2: Location, *, delta: float):
@@ -95,15 +95,19 @@ class UsabilityEvaluator:
     ):
         org = plans[0].org
         dst = plans[0].dst
-        assert all(
-            near_locations(plan.org, org, delta=1e-4) for plan in plans
-        ), json.dumps(
-            [dataclasses.asdict(plan) for plan in plans], ensure_ascii=False, indent=2
+        assert all(near_locations(plan.org, org, delta=1e-4) for plan in plans), (
+            json.dumps(
+                [dataclasses.asdict(plan) for plan in plans],
+                ensure_ascii=False,
+                indent=2,
+            )
         )
-        assert all(
-            near_locations(plan.dst, dst, delta=1e-4) for plan in plans
-        ), json.dumps(
-            [dataclasses.asdict(plan) for plan in plans], ensure_ascii=False, indent=2
+        assert all(near_locations(plan.dst, dst, delta=1e-4) for plan in plans), (
+            json.dumps(
+                [dataclasses.asdict(plan) for plan in plans],
+                ensure_ascii=False,
+                indent=2,
+            )
         )
 
         result = {

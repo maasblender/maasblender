@@ -12,11 +12,12 @@ import subprocess
 import typing
 import zipfile
 from copy import deepcopy
-from urllib.parse import urljoin, quote as urlquote
+from urllib.parse import quote as urlquote  # 追加
+from urllib.parse import urljoin  # 追加
+from wsgiref.util import request_uri  # 追加
 
 import aiohttp
 import fastapi
-
 from config import env
 from core import Location, Path
 from jschema import query, response
@@ -116,7 +117,9 @@ def update_config_files_for_gbfs(url_base: str):
             dir_gbfs = path_gbfs_json.parent
             # Get gbfs.json file path and URL
             gbfsname = dir_gbfs.relative_to(env.OPENTRIPPLANNER_GBFS_DIR)
-            url = urljoin(url_base, f"/gbfs/{urlquote(gbfsname)}/gbfs.json")
+            url = urljoin(
+                url_base, f"/gbfs/{urlquote(str(gbfsname))}/gbfs.json"
+            )  # str型に変換
 
             # Set URL to gbfs.json for updaters element in router-config.json
             for updater in updaters:
@@ -144,7 +147,9 @@ def update_config_files_for_gbfs(url_base: str):
                             raise fastapi.HTTPException(
                                 fastapi.status.HTTP_500_INTERNAL_SERVER_ERROR, msg
                             )
-                        url = urljoin(url_base, f"/gbfs/{gbfsname}/{name}.json")
+                        url = urljoin(
+                            url_base, f"/gbfs/{str(gbfsname)}/{name}.json"
+                        )  # str型に変換
                         feed["url"] = url
 
 
@@ -240,12 +245,30 @@ async def setup(request: fastapi.Request, setting: query.Setup):
         msg = "OTP requires at least one GTFS (or GTFS FLEX) file"
         raise fastapi.HTTPException(fastapi.status.HTTP_501_NOT_IMPLEMENTED, msg)
     if "gbfs" in network_types:
-        url_base = f"http://localhost:{request.url.port}"
+        url_base = f"http://localhost"
         update_config_files_for_gbfs(url_base)
 
     walking_meters_per_minute = await get_walking_speed(setting)
     logger.info("walking_meters_per_minute: %s", walking_meters_per_minute)
 
+    # # transport_modes を変数に分けてログ出力
+    # transport_modes = (
+    #     [
+    #         [{"mode": mode.mode, "qualifier": mode.qualifier} for mode in modes.modes]
+    #         for modes in setting.modes
+    #     ]
+    #     if setting.modes
+    #     else None
+    # )
+
+    # logger.info("🚀 transport_modes in setup: %s", transport_modes)
+    # logger.info(
+    #     "🔧 services: %s",
+    #     {
+    #         details.agency_id or service: service
+    #         for service, details in setting.networks.items()
+    #     },
+    # )
     global planner
     planner = OpenTripPlanner(
         endpoint=f"http://localhost:{env.OPENTRIPPLANNER_PORT}",
@@ -307,7 +330,14 @@ async def plan(org: query.LocationSetting, dst: query.LocationSetting, dept: flo
     org = Location(id_=org.locationId, lat=org.lat, lng=org.lng)
     dst = Location(id_=dst.locationId, lat=dst.lat, lng=dst.lng)
     plans = await planner.plan(org, dst, dept)
-    print(plans)
+
+    for idx, path in enumerate(plans):
+        logger.info(f"候補 {idx + 1}:")
+        for trip in path.trips:
+            logger.info(
+                f"  {trip.service}: {trip.org.id_} → {trip.dst.id_} （{trip.dept} → {trip.arrv}）"
+            )
+
     return plans
 
 
