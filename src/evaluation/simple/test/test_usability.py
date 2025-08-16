@@ -39,22 +39,6 @@ class EvaluationTestCase(unittest.IsolatedAsyncioTestCase):
             "",
             timing=EvaluationTiming.ON_DEPARTURE,
         )
-        self.user_id = "U_001"
-        plan = unittest.mock.AsyncMock()
-        plan.return_value = [
-            Route(
-                [
-                    Trip(
-                        org=Location("org.id", lat=1.23, lng=2.34),
-                        dst=Location("dst.id", lat=1.234, lng=2.345),
-                        dept=1234.5,
-                        arrv=6789.0,
-                        service="test-service",
-                    )
-                ]
-            )
-        ]
-        self.evaluator.planner.plan = plan
         reservable = unittest.mock.AsyncMock()
         reservable.return_value = True
         self.evaluator.reserver.reservable = reservable
@@ -88,8 +72,8 @@ class EvaluationTestCase(unittest.IsolatedAsyncioTestCase):
                     Trip(
                         org=locations["17_1"],
                         dst=dst,
-                        dept=621.0,
-                        arrv=623,
+                        dept=628,
+                        arrv=643,
                         service="walking",
                     ),
                 ]
@@ -100,7 +84,7 @@ class EvaluationTestCase(unittest.IsolatedAsyncioTestCase):
                         org=org,
                         dst=dst,
                         dept=621.0,
-                        arrv=636.8433646208391,
+                        arrv=650.0,
                         service="walking",
                     )
                 ]
@@ -124,8 +108,8 @@ class EvaluationTestCase(unittest.IsolatedAsyncioTestCase):
                     Trip(
                         org=locations["25_1"],
                         dst=dst,
-                        dept=621.0,
-                        arrv=623,
+                        dept=628,
+                        arrv=631,
                         service="walking",
                     ),
                 ]
@@ -144,17 +128,18 @@ class EvaluationTestCase(unittest.IsolatedAsyncioTestCase):
                 "event_time": 0.0,
                 "demand_id": "Demand123",
                 "plans": [
-                    {
-                        "org": route.trips[trip_index].org.location_id,
-                        "dst": route.trips[trip_index].dst.location_id,
-                        "dept": [trip.dept for trip in route.trips],
-                        "arrv": [trip.arrv for trip in route.trips],
-                        "service": route.service,
-                        "reservable": True,
-                    }
-                    for route, trip_index in zip(
-                        routes, [0 if len(route.trips) == 1 else 1 for route in routes]
-                    )
+                    [
+                        {
+                            "org": trip.org.location_id,
+                            "dst": trip.dst.location_id,
+                            "dept": trip.dept,
+                            "arrv": trip.arrv,
+                            "service": trip.service,
+                            "reservable": True,
+                        }
+                        for trip in route.trips
+                    ]
+                    for route in routes
                 ],
             },
             result,
@@ -184,8 +169,8 @@ class EvaluationTestCase(unittest.IsolatedAsyncioTestCase):
                     Trip(
                         org=locations["17_1"],
                         dst=dst,
-                        dept=621.0,
-                        arrv=623,
+                        dept=628,
+                        arrv=635,
                         service="walking",
                     ),
                 ]
@@ -196,7 +181,7 @@ class EvaluationTestCase(unittest.IsolatedAsyncioTestCase):
                         org=org,
                         dst=dst,
                         dept=621.0,
-                        arrv=636.8433646208391,
+                        arrv=648,
                         service="walking",
                     )
                 ]
@@ -220,8 +205,8 @@ class EvaluationTestCase(unittest.IsolatedAsyncioTestCase):
                     Trip(
                         org=locations["25_1"],
                         dst=dst,
-                        dept=621.0,
-                        arrv=623,
+                        dept=628,
+                        arrv=632,
                         service="walking",
                     ),
                 ]
@@ -240,17 +225,18 @@ class EvaluationTestCase(unittest.IsolatedAsyncioTestCase):
                 "event_time": 1000.0,
                 "demand_id": "D999",
                 "plans": [
-                    {
-                        "org": route.trips[trip_index].org.location_id,
-                        "dst": route.trips[trip_index].dst.location_id,
-                        "dept": [trip.dept for trip in route.trips],
-                        "arrv": [trip.arrv for trip in route.trips],
-                        "service": route.service,
-                        "reservable": True,
-                    }
-                    for route, trip_index in zip(
-                        routes, [0 if len(route.trips) == 1 else 1 for route in routes]
-                    )
+                    [
+                        {
+                            "org": trip.org.location_id,
+                            "dst": trip.dst.location_id,
+                            "dept": trip.dept,
+                            "arrv": trip.arrv,
+                            "service": trip.service,
+                            "reservable": True,
+                        }
+                        for trip in route.trips
+                    ]
+                    for route in routes
                 ],
             },
         )

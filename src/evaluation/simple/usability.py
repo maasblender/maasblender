@@ -58,16 +58,19 @@ class UsabilityEvaluator:
         """
         enqueue DEMAND event at dept
         """
-        demand = DemandEvent(
-            env=self.env,
-            event_time=event_time,
-            dept=dept,
-            org=org,
-            dst=dst,
-            service=service,
-            demand_id=demand_id,
+        self.env.process(
+            self._demand(
+                DemandEvent(
+                    env=self.env,
+                    event_time=event_time,
+                    dept=dept,
+                    org=org,
+                    dst=dst,
+                    service=service,
+                    demand_id=demand_id,
+                )
+            )
         )
-        self.env.process(self._demand(demand))
 
     def _demand(self, demand: DemandEvent):
         match self.timing:
@@ -85,7 +88,9 @@ class UsabilityEvaluator:
         return self.env.now
 
     async def evaluate(self, demand: DemandEvent):
-        plans = await self._plan(org=demand.org, dst=demand.dst, dept=demand.dept)
+        plans = await self.planner.plan(
+            org=demand.org, dst=demand.dst, dept=demand.dept
+        )
         result = await self._evaluate(
             plans,
             actual=demand.service,
@@ -94,9 +99,6 @@ class UsabilityEvaluator:
             demand_id=demand.demand_id,
         )
         await self.logger.write_json(result)
-
-    def _plan(self, org: Location, dst: Location, dept: float):
-        return self.planner.plan(org, dst, dept)
 
     async def _evaluate(
         self,
@@ -123,34 +125,31 @@ class UsabilityEvaluator:
             )
         )
 
-        result = {
+        return {
+            "demand_id": demand_id,
+            "time": dept,
+            "event_time": event_time,  # for compatibility
             "org": org.location_id,
             "dst": dst.location_id,
-            "event_time": event_time,  # for compatibility
-            "time": dept,
             "actual_service": actual,
-            "plans": [await self._evaluate_plan(plan) for plan in plans],
-            "demand_id": demand_id,
-        }
-        return result
-
-    async def _evaluate_plan(self, plan: Route):
-        if len(plan.trips) > 1:
-            # assume second trip as mobility
-            trip = plan.trips[1]
-        else:
-            trip = plan.trips[0]
-        return {
-            "org": trip.org.location_id,
-            "dst": trip.dst.location_id,
-            "dept": [trip.dept for trip in plan.trips],
-            "arrv": [trip.arrv for trip in plan.trips],
-            "service": plan.service,
-            "reservable": await self.reserver.reservable(
-                service=plan.service,
-                org=trip.org.location_id,
-                dst=trip.dst.location_id,
-            )
-            if plan.service != "walking"
-            else True,
+            "plans": [
+                [
+                    {
+                        "org": trip.org.location_id,
+                        "dst": trip.dst.location_id,
+                        "dept": trip.dept,
+                        "arrv": trip.arrv,
+                        "service": trip.service,
+                        "reservable": await self.reserver.reservable(
+                            service=trip.service,
+                            org=trip.org.location_id,
+                            dst=trip.dst.location_id,
+                        )
+                        if trip.service != "walking"
+                        else True,
+                    }
+                    for trip in plan.trips
+                ]
+                for plan in plans
+            ],
         }
