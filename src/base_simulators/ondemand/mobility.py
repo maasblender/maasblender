@@ -401,6 +401,9 @@ class Car(Mobility):
             routing_enums_pb2.FirstSolutionStrategy.PARALLEL_CHEAPEST_INSERTION
         )
 
+        # Add time limit
+        search_parameters.time_limit.FromSeconds(10)
+
         # Solve the problem.
         solution = routing.SolveWithParameters(search_parameters)
 
