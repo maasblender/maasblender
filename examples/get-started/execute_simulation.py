@@ -8,8 +8,7 @@ import httpx
 def main():
     otp_config = Path("jobui/otp-config.zip")
     gtfs = Path("jobui/2023_diagram/gtfs.zip")
-    gtfs_flex = Path("jobui/gtfs_flex_mod.zip")
-    settings = Path("data/broker_setup_graphql.json")
+    settings = Path("data/broker_setup.json")
 
     with httpx.Client() as client:
         # 1. Uploads configuration files to the otp planner service
@@ -45,22 +44,6 @@ def main():
             return
         print(response.json())
 
-        response = client.post(
-            "http://localhost:3010/upload",
-            files={
-                "upload_file": (
-                    "gtfs_flex.zip",
-                    open(gtfs_flex, "rb"),
-                    "application/x-zip-compressed",
-                )
-            },
-            headers={"accept": "application/json"},
-        )
-        if not response.status_code == 200:
-            print(response.text)
-            return
-        print(response.json())
-
         # 2. Uploads GTFS files to the scheduled simulation service
         response = client.post(
             "http://localhost:3001/upload",
@@ -78,24 +61,7 @@ def main():
             return
         print(response.json())
 
-        # 3. Uploads GTFS-FLEX files to the ondemand simulation service
-        response = client.post(
-            "http://localhost:3002/upload",
-            files={
-                "upload_file": (
-                    "gtfs_flex.zip",
-                    open(gtfs_flex, "rb"),
-                    "application/x-zip-compressed",
-                )
-            },
-            headers={"accept": "application/json"},
-        )
-        if not response.status_code == 200:
-            print(response.text)
-            return
-        print(response.json())
-
-        # 4. Sets up the broker service with the configuration file
+        # 3. Sets up the broker service with the configuration file
         # Sends a request to `localhost:3000/setup` to configure all services.
         # This step may take a long time and could potentially time out.
         with open(settings, "r", encoding="utf-8") as file:
@@ -110,11 +76,11 @@ def main():
             print(response.json())
             if response.status_code != 200:
                 return
-        except Exception:
+        except Exception as e:
             print(response.text)
             exit(-1)
 
-        # 5. Starts the broker service
+        # 4. Starts the broker service
         # Sends a request to `localhost:3000/start` to start the initialization process.
         response = client.post(
             "http://localhost:3000/start", headers={"accept": "application/json"}
@@ -125,7 +91,7 @@ def main():
             print(response.text)
             exit(-1)
 
-        # 6. Runs the simulation
+        # 5. Runs the simulation
         # Sends a request to `localhost:3000/run` with a simulation duration parameter (`until=4320`).
         response = client.post(
             "http://localhost:3000/run",
@@ -138,7 +104,7 @@ def main():
             print(response.text)
             exit(-2)
 
-        # 7. Periodically checks the simulation status
+        # 6. Periodically checks the simulation status
         # Polls the broker service every 10 seconds to check if the simulation is still running.
         running = True
         while running:
@@ -158,7 +124,7 @@ def main():
             except Exception:
                 print(response.text)
 
-        # 8. Retrieves simulation results after simulation completion
+        # 7. Retrieves simulation results after simulation completion
         # Fetches event logs from `localhost:3000/events` and saves them to `output/events.txt`.
         response = client.get("http://localhost:3000/events")
         with open("output/events.txt", "w", encoding="utf-8") as file:
