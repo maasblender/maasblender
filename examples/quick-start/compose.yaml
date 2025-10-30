@@ -10,21 +10,13 @@ services:
   user_model:
     build: ../../src/user_model/simple
 
-  favorite_model:
-    build: ../../src/user_model/favorite
-
-  scenario_historical:
-    build: ../../src/scenario/historical
+  scenario_commuter:
+    build: ../../src/scenario/commuter
 
   scheduled:
     build: ../../src/base_simulators/scheduled
     ports:
       - "3001:80"
-
-  ondemand:
-    build: ../../src/base_simulators/ondemand
-    ports:
-      - "3002:80"
 
   planner:
     build: ../../src/planner/opentripplanner
