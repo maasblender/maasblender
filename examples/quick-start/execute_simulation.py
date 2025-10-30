@@ -6,9 +6,9 @@ import httpx
 
 
 def main():
-    otp_config = Path("jobui/otp-config.zip")
-    gtfs = Path("jobui/2023_diagram/gtfs.zip")
-    settings = Path("data/broker_setup.json")
+    otp_config = Path("otp-config.zip")
+    gtfs = Path("gtfs.zip")
+    settings = Path("broker_setup.json")
 
     with httpx.Client() as client:
         # 1. Uploads configuration files to the otp planner service
@@ -76,7 +76,7 @@ def main():
             print(response.json())
             if response.status_code != 200:
                 return
-        except Exception as e:
+        except Exception:
             print(response.text)
             exit(-1)
 
@@ -95,7 +95,7 @@ def main():
         # Sends a request to `localhost:3000/run` with a simulation duration parameter (`until=4320`).
         response = client.post(
             "http://localhost:3000/run",
-            params={"until": "4320"},
+            params={"until": "1440"},
             headers={"accept": "application/json"},
         )
         try:
@@ -123,12 +123,14 @@ def main():
                     exit(-3)
             except Exception:
                 print(response.text)
+        print("successfully finished.")
 
         # 7. Retrieves simulation results after simulation completion
         # Fetches event logs from `localhost:3000/events` and saves them to `output/events.txt`.
         response = client.get("http://localhost:3000/events")
-        with open("output/events.txt", "w", encoding="utf-8") as file:
+        with open("events.txt", "w", encoding="utf-8") as file:
             file.write(response.text)
+        print("All events recorded to events.txt")
 
 
 if __name__ == "__main__":

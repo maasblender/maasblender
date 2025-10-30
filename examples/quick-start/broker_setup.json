@@ -36,7 +36,7 @@
     "type": "http",
     "endpoint": "http://scheduled",
     "details": {
-      "reference_time": "20250401",
+      "reference_time": "20251016",
       "input_files": [
         {
           "filename": "gtfs.zip"
@@ -69,7 +69,7 @@
           "agency_id": "7230001002032"
         }
       },
-      "reference_time": "20250401",
+      "reference_time": "20251016",
       "walking_meters_per_minute": 50.0
     }
   },
@@ -81,5 +81,5 @@
         "endpoint": "http://planner/plan"
       }
     }
-  },
+  }
 }
