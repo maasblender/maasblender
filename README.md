@@ -31,6 +31,9 @@ decision-makers discuss the MaaS combination which is suitable for them and agre
 This simulation platform intends to use several phases of MasS introduction, implementation and revision.
 To utilize our platform in each phase, the platform shas  features that enables users to attach/detach each function owned by each mobility service provider and stakeholder.
 
+## How to Use
+Please read the [documentation](https://maasblender.github.io/).
+
 ## Contributing
 If you find bugs or want to add some features, please check out the [contributing guide](CONTRIBUTING.md). 
 
