@@ -64,7 +64,6 @@ def main():
                 return
             print(response.json())
 
-
         # 3. Sets up the broker service with the configuration file
         # Sends a request to `localhost:3000/setup` to configure all services.
         # This step may take a long time and could potentially time out.
