@@ -1,0 +1,85 @@
+{
+  "broker": {
+    "type": "broker",
+    "details": {
+      "writer": {}
+    }
+  },
+  "walking": {
+    "type": "http",
+    "endpoint": "http://walking",
+    "details": {}
+  },
+  "scenario_commuter": {
+    "type": "http",
+    "endpoint": "http://scenario_commuter",
+    "details": {
+      "commuters": {
+        "CU_001": {
+          "org": {
+            "locationId": "富山駅",
+            "lat": 36.7016913,
+            "lng": 137.21017
+          },
+          "dst": {
+            "locationId": "アピア",
+            "lat": 36.6963384,
+            "lng": 137.2274607
+          },
+          "deptOut": 560.0,
+          "deptIn": 1120.0
+        }
+      }
+    }
+  },
+  "gtfs": {
+    "type": "http",
+    "endpoint": "http://scheduled",
+    "details": {
+      "reference_time": "20251016",
+      "input_files": [
+        {
+          "filename": "gtfs.zip"
+        }
+      ],
+      "mobility": {
+        "capacity": 20
+      }
+    }
+  },
+  "planner": {
+    "type": "planner",
+    "endpoint": "http://planner",
+    "details": {
+      "otp_config": {
+        "input_files": [
+          {
+            "filename": "otp-config.zip"
+          }
+        ]
+      },
+      "networks": {
+        "gtfs": {
+          "type": "gtfs",
+          "input_files": [
+            {
+              "filename": "gtfs.zip"
+            }
+          ],
+          "agency_id": "7230001002032"
+        }
+      },
+      "reference_time": "20251016",
+      "walking_meters_per_minute": 50.0
+    }
+  },
+  "user": {
+    "type": "http",
+    "endpoint": "http://user_model",
+    "details": {
+      "planner": {
+        "endpoint": "http://planner/plan"
+      }
+    }
+  }
+}

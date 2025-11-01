@@ -1,0 +1,24 @@
+services:
+  broker:
+    build: ../../src/simulation_broker
+    ports:
+      - "3000:80"
+
+  walking:
+    build: ../../src/base_simulators/walking
+
+  user_model:
+    build: ../../src/user_model/simple
+
+  scenario_commuter:
+    build: ../../src/scenario/commuter
+
+  scheduled:
+    build: ../../src/base_simulators/scheduled
+    ports:
+      - "3001:80"
+
+  planner:
+    build: ../../src/planner/opentripplanner
+    ports:
+      - "3010:80"
