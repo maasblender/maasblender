@@ -12,54 +12,58 @@ def main():
 
     with httpx.Client() as client:
         # 1. Uploads configuration files to the otp planner service
-        response = client.post(
-            "http://localhost:3010/upload",
-            files={
-                "upload_file": (
-                    "otp-config.zip",
-                    open(otp_config, "rb"),
-                    "application/x-zip-compressed",
-                )
-            },
-            headers={"accept": "application/json"},
-        )
-        if not response.status_code == 200:
-            print(response.text)
-            return
-        print(response.json())
+        with open(otp_config, "rb") as otp_config_file:
+            response = client.post(
+                "http://localhost:3010/upload",
+                files={
+                    "upload_file": (
+                        "otp-config.zip",
+                        otp_config_file,
+                        "application/x-zip-compressed",
+                    )
+                },
+                headers={"accept": "application/json"},
+            )
+            if not response.status_code == 200:
+                print(response.text)
+                return
+            print(response.json())
 
-        response = client.post(
-            "http://localhost:3010/upload",
-            files={
-                "upload_file": (
-                    "gtfs.zip",
-                    open(gtfs, "rb"),
-                    "application/x-zip-compressed",
-                )
-            },
-            headers={"accept": "application/json"},
-        )
-        if not response.status_code == 200:
-            print(response.text)
-            return
-        print(response.json())
+        with open(gtfs, "rb") as gtfs_file:
+            response = client.post(
+                "http://localhost:3010/upload",
+                files={
+                    "upload_file": (
+                        "gtfs.zip",
+                        gtfs_file,
+                        "application/x-zip-compressed",
+                    )
+                },
+                headers={"accept": "application/json"},
+            )
+            if not response.status_code == 200:
+                print(response.text)
+                return
+            print(response.json())
 
         # 2. Uploads GTFS files to the scheduled simulation service
-        response = client.post(
-            "http://localhost:3001/upload",
-            files={
-                "upload_file": (
-                    "gtfs.zip",
-                    open(gtfs, "rb"),
-                    "application/x-zip-compressed",
-                )
-            },
-            headers={"accept": "application/json"},
-        )
-        if not response.status_code == 200:
-            print(response.text)
-            return
-        print(response.json())
+        with open(gtfs, "rb") as gtfs_file2:
+            response = client.post(
+                "http://localhost:3001/upload",
+                files={
+                    "upload_file": (
+                        "gtfs.zip",
+                        gtfs_file2,
+                        "application/x-zip-compressed",
+                    )
+                },
+                headers={"accept": "application/json"},
+            )
+            if not response.status_code == 200:
+                print(response.text)
+                return
+            print(response.json())
+
 
         # 3. Sets up the broker service with the configuration file
         # Sends a request to `localhost:3000/setup` to configure all services.
@@ -92,7 +96,7 @@ def main():
             exit(-1)
 
         # 5. Runs the simulation
-        # Sends a request to `localhost:3000/run` with a simulation duration parameter (`until=4320`).
+        # Sends a request to `localhost:3000/run` with a simulation duration parameter (`until=1440`).
         response = client.post(
             "http://localhost:3000/run",
             params={"until": "1440"},
