@@ -259,31 +259,34 @@ class OpenTripPlanner:
             )
 
     def _leg_to_trip(self, leg: typing.Mapping) -> Trip:
-        service = (
-            "walking"
-            if leg["mode"] == "WALK"
-            else self.services.get(id_from_gtfs_id(leg["agency"]["gtfsId"]))
-        )
-        if not service:
-            raise KeyError(
-                f"unknown agency: {leg['agency']['gtfsId']} (not in {self.services.keys()})"
-            )
-
         org = leg["from"]
         dst = leg["to"]
+
+        if leg["mode"] == "WALK":
+            # walking
+            service = "walking"
+            org_id = org["name"]
+            dst_id = dst["name"]
+        elif leg["mode"] == "BICYCLE":
+            # GBFS
+            service = self.services[org["vehicleRentalStation"]["network"]]
+            org_id = id_from_gtfs_id(org["vehicleRentalStation"]["stationId"])
+            dst_id = id_from_gtfs_id(dst["vehicleRentalStation"]["stationId"])
+        # GTFS
+        else:
+            service = self.services[id_from_gtfs_id(leg["agency"]["gtfsId"])]
+            org_id = id_from_gtfs_id(org["stop"]["gtfsId"])
+            dst_id = id_from_gtfs_id(dst["stop"]["gtfsId"])
+
         return Trip(
             service=service,
             org=Location(
-                id_=id_from_gtfs_id(org["stop"]["gtfsId"])
-                if org.get("stop")
-                else org["name"],
+                id_=org_id,
                 lat=org["lat"],
                 lng=org["lon"],
             ),
             dst=Location(
-                id_=id_from_gtfs_id(dst["stop"]["gtfsId"])
-                if dst.get("stop")
-                else dst["name"],
+                id_=dst_id,
                 lat=dst["lat"],
                 lng=dst["lon"],
             ),
