@@ -1,8 +1,10 @@
 # SPDX-FileCopyrightText: 2023 TOYOTA MOTOR CORPORATION and MaaS Blender Contributors
 # SPDX-License-Identifier: Apache-2.0
+import aiohttp
 import asyncio
 import contextlib
 import datetime
+import fastapi
 import io
 import json
 import logging
@@ -11,18 +13,15 @@ import pathlib
 import subprocess
 import typing
 import zipfile
-from copy import deepcopy
-from urllib.parse import urljoin, quote as urlquote
-
-import aiohttp
-import fastapi
 
 from config import env
 from core import Location, Path
+from copy import deepcopy
 from jschema import query, response
 from mblib.io import httputil
 from mblib.io.log import init_logger
 from route_planner import OpenTripPlanner
+from urllib.parse import urljoin, quote as urlquote
 
 logger = logging.getLogger(__name__)
 app = fastapi.FastAPI(
@@ -116,7 +115,7 @@ def update_config_files_for_gbfs(url_base: str):
             dir_gbfs = path_gbfs_json.parent
             # Get gbfs.json file path and URL
             gbfsname = dir_gbfs.relative_to(env.OPENTRIPPLANNER_GBFS_DIR)
-            url = urljoin(url_base, f"/gbfs/{urlquote(gbfsname)}/gbfs.json")
+            url = urljoin(url_base, f"/gbfs/{str(gbfsname)}/gbfs.json")
 
             # Set URL to gbfs.json for updaters element in router-config.json
             for updater in updaters:
@@ -144,7 +143,9 @@ def update_config_files_for_gbfs(url_base: str):
                             raise fastapi.HTTPException(
                                 fastapi.status.HTTP_500_INTERNAL_SERVER_ERROR, msg
                             )
-                        url = urljoin(url_base, f"/gbfs/{gbfsname}/{name}.json")
+                        url = urljoin(
+                            url_base, f"/gbfs/{str(gbfsname)}/{name}.json"
+                        )  # str型に変換
                         feed["url"] = url
 
 
@@ -155,11 +156,7 @@ async def get_walking_speed(setting: query.Setup):
         try:
             with open(env.OPENTRIPPLANNER_VOLUME_DIR / "router-config.json", "r") as fd:
                 config = json.load(fd)
-            walk_speed = (
-                config.get("routingDefaults", {})
-                .get("walk", {})
-                .get("speed", walk_speed)
-            )
+            walk_speed = config.get("routingDefaults", {}).get("walkSpeed", walk_speed)
         except Exception:  # Default value if the file cannot be read
             logger.warning(
                 f"failed to read {env.OPENTRIPPLANNER_VOLUME_DIR}/router-config.json"
@@ -244,8 +241,7 @@ async def setup(request: fastapi.Request, setting: query.Setup):
         msg = "OTP requires at least one GTFS (or GTFS FLEX) file"
         raise fastapi.HTTPException(fastapi.status.HTTP_501_NOT_IMPLEMENTED, msg)
     if "gbfs" in network_types:
-        url_base = f"http://localhost:{request.url.port}"
-        update_config_files_for_gbfs(url_base)
+        update_config_files_for_gbfs("http://localhost")
 
     walking_meters_per_minute = await get_walking_speed(setting)
     logger.info("walking_meters_per_minute: %s", walking_meters_per_minute)
