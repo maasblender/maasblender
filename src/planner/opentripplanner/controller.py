@@ -115,9 +115,7 @@ def update_config_files_for_gbfs(url_base: str):
             dir_gbfs = path_gbfs_json.parent
             # Get gbfs.json file path and URL
             gbfsname = dir_gbfs.relative_to(env.OPENTRIPPLANNER_GBFS_DIR)
-            url = urljoin(
-                url_base, f"/gbfs/{str(gbfsname)}/gbfs.json"
-            )
+            url = urljoin(url_base, f"/gbfs/{str(gbfsname)}/gbfs.json")
 
             # Set URL to gbfs.json for updaters element in router-config.json
             for updater in updaters:
@@ -243,8 +241,7 @@ async def setup(request: fastapi.Request, setting: query.Setup):
         msg = "OTP requires at least one GTFS (or GTFS FLEX) file"
         raise fastapi.HTTPException(fastapi.status.HTTP_501_NOT_IMPLEMENTED, msg)
     if "gbfs" in network_types:
-        url_base = f"http://localhost"
-        update_config_files_for_gbfs(url_base)
+        update_config_files_for_gbfs("http://localhost")
 
     walking_meters_per_minute = await get_walking_speed(setting)
     logger.info("walking_meters_per_minute: %s", walking_meters_per_minute)
