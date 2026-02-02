@@ -110,7 +110,28 @@ class GtfsFilesReader:
             for service_id, exception_date, is_added in GtfsReader(
                 f, parse_calendar_dates
             ):
-                self._services[service_id].append_exception(exception_date, is_added)
+                # NOTE:
+                # This Service is a fallback for service_id defined only in calendar_dates.txt.
+                # calendar.txt does not define this service_id.
+                # start_date/end_date are dummy values; actual service availability
+                # is determined by calendar_dates exceptions.
+                dummy_date = exception_date  # not used
+                if service_id not in self._services:
+                    self._services[service_id] = Service(
+                        start_date=dummy_date,
+                        end_date=dummy_date,
+                        monday=False,
+                        tuesday=False,
+                        wednesday=False,
+                        thursday=False,
+                        friday=False,
+                        saturday=False,
+                        sunday=False,
+                    )
+                    
+                self._services[service_id].append_exception(
+                    exception_date, is_added
+                )
 
         with archive.open("stop_times.txt") as f:
             for k, v in GtfsReader(f, self.parse_stop_time):
