@@ -1,14 +1,109 @@
 import json
 import time
+import zipfile
 from pathlib import Path
-
+from datetime import datetime
 import httpx
 
+def extract_gtfs_period(zip_path: Path):
+    """
+    Extracts the overall validity period (start date, end date) from the GTFS zip file.
+
+    Details:
+        calendar.txt (calculates the minimum start date and maximum end date when start/end dates are explicitly defined)
+    
+    Return value:
+        Tuple (datetime | None, datetime | None)
+    """
+    try:
+        with zipfile.ZipFile(zip_path, "r") as z:
+            # Derive validity period from calendar.txt
+            if "calendar.txt" in z.namelist():
+                with z.open("calendar.txt") as f:
+                    content = f.read().decode("utf-8").splitlines()
+                    header = content[0].split(",")
+                    idx_start = header.index("start_date")
+                    idx_end = header.index("end_date")
+
+                    start_dates = []
+                    end_dates = []
+
+                    for row in content[1:]:
+                        cols = row.split(",")
+                        start_dates.append(datetime.strptime(cols[idx_start], "%Y%m%d"))
+                        end_dates.append(datetime.strptime(cols[idx_end], "%Y%m%d"))
+
+                    return min(start_dates), max(end_dates)
+    except Exception as e:
+        print(f"[⚠ WARN] Failed to read GTFS file '{zip_path}': {e}")
+        return None, None
+
+def validate_reference_times(settings_path: Path):
+    """
+    Load broker_setup.json and verify that the reference_time for each GTFS service falls within the GTFS feed's validity period.
+    This is a soft validation:
+        - Logs warnings instead of throwing exceptions.
+        - Out-of-range dates may be intentional depending on scenario design.
+    """
+    print_section("GTFS Validity Check")
+
+    with open(settings_path, "r", encoding="utf-8") as f:
+        config = json.load(f)
+
+    for service_name, service in config.items():
+        if not service_name.startswith("gtfs_"):
+            continue
+
+        details = service.get("details", {})
+        reference_time = details.get("reference_time")
+        input_files = details.get("input_files", [])
+
+        if not reference_time:
+            continue
+
+        reference_date = datetime.strptime(reference_time, "%Y%m%d")
+
+        for file_info in input_files:
+            filename = file_info["filename"]
+            zip_path = Path(filename)
+
+            start_date, end_date = extract_gtfs_period(zip_path)
+
+            if start_date and end_date:
+                if reference_date < start_date or reference_date > end_date:
+                    print(
+                        f"[⚠ WARN] reference_time={reference_time} "
+                        f"is outside GTFS valid period "
+                        f"({start_date.date()} - {end_date.date()}) "
+                        f"for service '{service_name}'."
+                    )
+                else:
+                    print(
+                        f"[✅ OK] reference_time={reference_time} "
+                        f"is within GTFS valid period "
+                        f"({start_date.date()} - {end_date.date()}) "
+                        f"for service '{service_name}'."
+                    )
+            else:
+                print(
+                    f"[⚠ WARN] Could not determine GTFS valid period "
+                    f"for service '{service_name}'."
+                )
+
+def print_section(message: str):
+    """Function to print a console section header."""
+    line = "=" * 60
+    print(f"\n{line}")
+    print(message)
+    print(line)
 
 def main():
     otp_config = Path("otp-config.zip")
     gtfs = Path("gtfs.zip")
     settings = Path("broker_setup.json")
+    
+    # GTFS Validity Check
+    validate_reference_times(settings)
 
     with httpx.Client() as client:
         # 1. Uploads configuration files to the otp planner service
