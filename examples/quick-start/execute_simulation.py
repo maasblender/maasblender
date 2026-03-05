@@ -4,6 +4,8 @@ import zipfile
 from pathlib import Path
 from datetime import datetime
 import httpx
+import csv
+import io
 
 def extract_gtfs_period(zip_path: Path):
     """
@@ -20,20 +22,23 @@ def extract_gtfs_period(zip_path: Path):
             # Derive validity period from calendar.txt
             if "calendar.txt" in z.namelist():
                 with z.open("calendar.txt") as f:
-                    content = f.read().decode("utf-8").splitlines()
-                    header = content[0].split(",")
-                    idx_start = header.index("start_date")
-                    idx_end = header.index("end_date")
+                    text_stream = io.TextIOWrapper(f, encoding="utf-8")
+                    reader = csv.DictReader(text_stream)
 
                     start_dates = []
                     end_dates = []
 
-                    for row in content[1:]:
-                        cols = row.split(",")
-                        start_dates.append(datetime.strptime(cols[idx_start], "%Y%m%d"))
-                        end_dates.append(datetime.strptime(cols[idx_end], "%Y%m%d"))
+                    for row in reader:
+                        if row.get("start_date") and row.get("end_date"):
+                            start_dates.append(
+                                datetime.strptime(row["start_date"], "%Y%m%d")
+                            )
+                            end_dates.append(
+                                datetime.strptime(row["end_date"], "%Y%m%d")
+                            )
+                    if start_dates and end_dates:
+                        return min(start_dates), max(end_dates)
 
-                    return min(start_dates), max(end_dates)
     except Exception as e:
         print(f"[⚠ WARN] Failed to read GTFS file '{zip_path}': {e}")
         return None, None
@@ -44,14 +49,22 @@ def validate_reference_times(settings_path: Path):
     This is a soft validation:
         - Logs warnings instead of throwing exceptions.
         - Out-of-range dates may be intentional depending on scenario design.
+    Networks explicitly defined as type="gtfs" are targeted.
     """
     print_section("GTFS Validity Check")
 
     with open(settings_path, "r", encoding="utf-8") as f:
         config = json.load(f)
 
-    for service_name, service in config.items():
-        if not service_name.startswith("gtfs_"):
+    # Extract network definitions under planner.details
+    planner = config.get("planner", {})
+    networks = planner.get("details", {}).get("networks", {})
+    for network_name, network in networks.items():
+        if network.get("type") != "gtfs":
+            continue
+        service = config.get(network_name)
+        # Skip when no service definition exists.
+        if not service:
             continue
 
         details = service.get("details", {})
@@ -75,19 +88,19 @@ def validate_reference_times(settings_path: Path):
                         f"[⚠ WARN] reference_time={reference_time} "
                         f"is outside GTFS valid period "
                         f"({start_date.date()} - {end_date.date()}) "
-                        f"for service '{service_name}'."
+                        f"for service '{network_name}'."
                     )
                 else:
                     print(
                         f"[✅ OK] reference_time={reference_time} "
                         f"is within GTFS valid period "
                         f"({start_date.date()} - {end_date.date()}) "
-                        f"for service '{service_name}'."
+                        f"for service '{network_name}'."
                     )
             else:
                 print(
                     f"[⚠ WARN] Could not determine GTFS valid period "
-                    f"for service '{service_name}'."
+                    f"for service '{network_name}'."
                 )
 
 def print_section(message: str):
