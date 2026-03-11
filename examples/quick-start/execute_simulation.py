@@ -7,41 +7,49 @@ import httpx
 import csv
 import io
 
-def extract_gtfs_period(zip_path: Path):
+def extract_gtfs_period(zip_path: Path) -> tuple[datetime, datetime]:
     """
-    Extracts the overall validity period (start date, end date) from the GTFS zip file.
+    Extract the overall validity period of a GTFS feed.
+    This function reads `calendar.txt` inside the GTFS zip file and
+    calculates `start_date` and `end_date` across all services.
 
-    Details:
-        calendar.txt (calculates the minimum start date and maximum end date when start/end dates are explicitly defined)
-    
+    Args:
+        zip_path (Path): Path to the GTFS zip file.
+
     Return value:
-        Tuple (datetime | None, datetime | None)
+        Tuple (datetime, datetime)
+
+    Raises:
+        GTFSPeriodException:
+            If `calendar.txt` is missing or valid start/end dates cannot be determined.
     """
-    try:
-        with zipfile.ZipFile(zip_path, "r") as z:
-            # Derive validity period from calendar.txt
-            if "calendar.txt" in z.namelist():
-                with z.open("calendar.txt") as f:
-                    text_stream = io.TextIOWrapper(f, encoding="utf-8")
-                    reader = csv.DictReader(text_stream)
 
-                    start_dates = []
-                    end_dates = []
+    with zipfile.ZipFile(zip_path, "r") as z:
+        # Derive validity period from calendar.txt
+        if "calendar.txt" not in z.namelist():
+            raise GTFSPeriodException("calendar.txt not found")
 
-                    for row in reader:
-                        if row.get("start_date") and row.get("end_date"):
-                            start_dates.append(
-                                datetime.strptime(row["start_date"], "%Y%m%d")
-                            )
-                            end_dates.append(
-                                datetime.strptime(row["end_date"], "%Y%m%d")
-                            )
-                    if start_dates and end_dates:
-                        return min(start_dates), max(end_dates)
+        with z.open("calendar.txt") as f:
+            text_stream = io.TextIOWrapper(f, encoding="utf-8")
+            reader = csv.DictReader(text_stream)
 
-    except Exception as e:
-        print(f"[⚠ WARN] Failed to read GTFS file '{zip_path}': {e}")
-        return None, None
+            start_dates = []
+            end_dates = []
+
+            for row in reader:
+                if row.get("start_date") and row.get("end_date"):
+                    start_dates.append(
+                        datetime.strptime(row["start_date"], "%Y%m%d")
+                    )
+                    end_dates.append(
+                        datetime.strptime(row["end_date"], "%Y%m%d")
+                    )
+            if start_dates and end_dates:
+                return min(start_dates), max(end_dates)
+            else:
+                raise GTFSPeriodException(
+                    "calendar.txt does not contain valid start/end dates"
+                )
 
 def validate_reference_times(settings_path: Path):
     """
@@ -80,28 +88,29 @@ def validate_reference_times(settings_path: Path):
             filename = file_info["filename"]
             zip_path = Path(filename)
 
-            start_date, end_date = extract_gtfs_period(zip_path)
-
-            if start_date and end_date:
-                if reference_date < start_date or reference_date > end_date:
-                    print(
-                        f"[⚠ WARN] reference_time={reference_time} "
-                        f"is outside GTFS valid period "
-                        f"({start_date.date()} - {end_date.date()}) "
-                        f"for service '{network_name}'."
-                    )
-                else:
-                    print(
-                        f"[✅ OK] reference_time={reference_time} "
-                        f"is within GTFS valid period "
-                        f"({start_date.date()} - {end_date.date()}) "
-                        f"for service '{network_name}'."
-                    )
-            else:
+            try:
+                start_date, end_date = extract_gtfs_period(zip_path)
+                if start_date and end_date:
+                    if reference_date < start_date or reference_date > end_date:
+                        print(
+                            f"[⚠ WARN] reference_time={reference_time} "
+                            f"is outside GTFS valid period "
+                            f"({start_date.date()} - {end_date.date()}) "
+                            f"for service '{network_name}'."
+                        )
+                    else:
+                        print(
+                            f"[✅ OK] reference_time={reference_time} "
+                            f"is within GTFS valid period "
+                            f"({start_date.date()} - {end_date.date()}) "
+                            f"for service '{network_name}'."
+                        )
+            except GTFSPeriodException as e:
                 print(
-                    f"[⚠ WARN] Could not determine GTFS valid period "
-                    f"for service '{network_name}'."
+                    f"[❌ ERROR] Could not determine GTFS valid period "
+                    f"for service '{network_name}'\n:{e}"
                 )
+                continue
 
 def print_section(message: str):
     """Function to print a console section header."""
