@@ -132,6 +132,7 @@ def upload_file(client: httpx.Client, url: str, filename: str) -> dict[str, Any]
     )
     return response.json()
 
+
 def assert_message(data: dict[str, Any], expected_message: str) -> None:
     if data.get("message") == expected_message:
         print(f"  [OK] {data['message']}")
@@ -141,14 +142,15 @@ def assert_message(data: dict[str, Any], expected_message: str) -> None:
 
 
 def post(
-    client: httpx.Client, url: str, params: Optional[dict] = None, **kwargs,
+    client: httpx.Client,
+    url: str,
+    params: Optional[dict] = None,
+    **kwargs,
 ) -> dict[str, Any]:
     return request_with_retry(client, "POST", url, params=params, **kwargs).json()
 
 
-def get_user_trips(
-    events: list[dict[str, Any]], user_id: str
-) -> list[Trip]:
+def get_user_trips(events: list[dict[str, Any]], user_id: str) -> list[Trip]:
     """Return only completed trips for the specified user."""
 
     departure: dict[str, Any] = {}
@@ -230,15 +232,21 @@ def split_commuter_trips(
         print("  [FAIL] commuter trips are empty")
         sys.exit(1)
 
-    pivot_index = next((i for i, trip in enumerate(trips) if trip.dst == turnaround_dst), -1)
+    pivot_index = next(
+        (i for i, trip in enumerate(trips) if trip.dst == turnaround_dst), -1
+    )
     if pivot_index < 0:
-        print(f"  [FAIL] no turnaround destination found: {turnaround_dst}. trips: {trips}")
+        print(
+            f"  [FAIL] no turnaround destination found: {turnaround_dst}. trips: {trips}"
+        )
         sys.exit(1)
 
     outbound = trips[: pivot_index + 1]
     inbound = trips[pivot_index + 1 :]
     if not inbound:
-        print(f"  [FAIL] inbound trips are missing after turnaround at {turnaround_dst}. trips: {trips}")
+        print(
+            f"  [FAIL] inbound trips are missing after turnaround at {turnaround_dst}. trips: {trips}"
+        )
         sys.exit(1)
 
     return outbound, inbound
@@ -276,7 +284,7 @@ def main() -> None:
 
         # --- Lifecycle ---
         response = post(client, "http://localhost:3000/start")
-        assert_message(response, "successfully started." )
+        assert_message(response, "successfully started.")
         response = post(client, "http://localhost:3000/run", params={"until": 1440})
         assert_message(response, "successfully run.")
 
@@ -285,7 +293,9 @@ def main() -> None:
 
         while True:
             time.sleep(SIMULATION_POLL_INTERVAL_SECONDS)
-            data = request_with_retry(client, "GET", "http://localhost:3000/peek").json()
+            data = request_with_retry(
+                client, "GET", "http://localhost:3000/peek"
+            ).json()
 
             if data.get("running") is False:
                 if data.get("success"):
@@ -294,19 +304,26 @@ def main() -> None:
 
                 print(f"  [FAIL] expected success=True, got: {data}")
                 sys.exit(1)
-            
+
             if time.time() > deadline:
                 print(
                     "  [FAIL] timed out waiting for simulation completion "
                     f"after {SIMULATION_WAIT_TIMEOUT_SECONDS} seconds"
                 )
                 sys.exit(1)
-        
+
         response = post(client, "http://localhost:3000/finish")
         assert_message(response, "successfully finished.")
 
         # --- Retrieve results ---
-        events = [json.loads(line) for line in request_with_retry(client, "GET", "http://localhost:3000/events").text.strip().splitlines()]
+        events = [
+            json.loads(line)
+            for line in request_with_retry(
+                client, "GET", "http://localhost:3000/events"
+            )
+            .text.strip()
+            .splitlines()
+        ]
 
     # --- historical users: must complete a trip to toyama_court by 540 ---
     print("Checking U_1 trips ...")
