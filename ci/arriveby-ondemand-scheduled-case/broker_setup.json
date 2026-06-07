@@ -1,0 +1,139 @@
+{
+  "broker": {
+    "type": "broker",
+    "details": {
+      "writer": {}
+    }
+  },
+  "walking": {
+    "type": "http",
+    "endpoint": "http://walking",
+    "details": {
+      "walking_meters_per_minute": 60.0
+    }
+  },
+  "scenario_historical": {
+    "type": "http",
+    "endpoint": "http://scenario_historical",
+    "details": {
+      "trips":[
+        {
+          "org": {
+            "locationId": "toyama_station",
+            "lat": 36.7014265,
+            "lng": 137.210879
+          },
+          "dst": {
+            "locationId": "toyama_court",
+            "lat": 36.6835921,
+            "lng": 137.2044729
+          },
+          "time": 539.0,
+          "arrv": 570.0,
+          "service": "gtfs"
+        }
+      ],
+      "userIDFormat": "U_%d"
+    }
+  },
+  "scenario_generator": {
+    "type": "http",
+    "endpoint": "http://scenario_generator",
+    "details": {
+      "demands":[
+        {
+          "org": {
+            "locationId": "toyama_station",
+            "lat": 36.7014265,
+            "lng": 137.210879
+          },
+          "dst": {
+            "locationId": "toyama_court",
+            "lat": 36.6835921,
+            "lng": 137.2044729
+          },
+          "begin": 540.0,
+          "end": 1080.0,
+          "resv": 540.0,
+          "expected_demands": 10,
+          "arrive_by": true
+        }
+      ],
+      "seed": 1,
+      "userIDFormat": "GU_%d"
+    }
+  },
+  "scenario_commuter": {
+    "type": "http",
+    "endpoint": "http://scenario_commuter",
+    "details": {
+      "commuters": {
+        "CU_001": {
+          "org": {
+            "locationId": "toyama_station",
+            "lat": 36.7014265,
+            "lng": 137.210879
+          },
+          "dst": {
+            "locationId": "toyama_court",
+            "lat": 36.6835921,
+            "lng": 137.2044729
+          },
+          "arrvOut": 555.0,
+          "arrvIn": 1105.0,
+          "leadTime": 20.0
+        }
+      }
+    }
+  },
+  "gtfs": {
+    "type": "http",
+    "endpoint": "http://scheduled",
+    "details": {
+      "reference_time": "20230404",
+      "input_files": [
+        {
+          "filename": "gtfs.zip"
+        }
+      ],
+      "mobility": {
+        "capacity": 20
+      }
+    }
+  },
+  "planner": {
+    "type": "planner",
+    "endpoint": "http://planner",
+    "details": {
+      "otp_config": {
+        "input_files": [
+          {
+            "filename": "otp-config.zip"
+          }
+        ]
+      },
+      "networks": {
+        "gtfs": {
+          "type": "gtfs",
+          "input_files": [
+            {
+              "filename": "gtfs.zip"
+            }
+          ],
+          "agency_id": "7230001002032"
+        }
+      },
+      "reference_time": "20230404",
+      "walking_meters_per_minute": 60.0
+    }
+  },
+  "user": {
+    "type": "http",
+    "endpoint": "http://user_model",
+    "details": {
+      "planner": {
+        "endpoint": "http://broker/plan"
+      }
+    }
+  }
+}
