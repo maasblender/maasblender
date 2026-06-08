@@ -14,8 +14,10 @@ class Planner:
     async def close(self):
         await self._session.close()
 
-    async def plan(self, org: Location, dst: Location, dept: float) -> list[Route]:
-        response = await self.query(org, dst, dept)
+    async def plan(
+        self, org: Location, dst: Location, dept: float, arrv: float | None
+    ) -> list[Route]:
+        response = await self.query(org, dst, dept, arrv)
         return [
             Route(
                 [
@@ -40,10 +42,15 @@ class Planner:
             for route in response
         ]
 
-    async def query(self, org: Location, dst: Location, dept: float):
+    async def query(
+        self, org: Location, dst: Location, dept: float, arrv: float | None
+    ):
+        params = {"dept": dept}
+        if arrv is not None:
+            params["arrv"] = arrv
         async with self._session.post(
             url=self.endpoint,
-            params={"dept": dept},
+            params=params,
             json={
                 "org": {"locationId": org.location_id, "lat": org.lat, "lng": org.lng},
                 "dst": {"locationId": dst.location_id, "lat": dst.lat, "lng": dst.lng},

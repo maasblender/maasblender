@@ -24,6 +24,8 @@ HTTP_TIMEOUT_SETUP = httpx.Timeout(connect=5.0, read=180.0, write=30.0, pool=5.0
 RETRY_ATTEMPTS = 6
 INITIAL_BACKOFF_SECONDS = 1.0
 MAX_BACKOFF_SECONDS = 8.0
+SIMULATION_WAIT_TIMEOUT_SECONDS = 900
+SIMULATION_POLL_INTERVAL_SECONDS = 1.0
 
 
 def file_path(filename: str) -> str:
@@ -143,7 +145,7 @@ def post_json(
 
 
 def post(
-    client: httpx.Client, url: str, expected_message: str, params: dict = None
+    client: httpx.Client, url: str, expected_message: str, params: Optional[dict] = None
 ) -> None:
     print(f"POST {url} ...")
     response = request_with_retry(client, "POST", url, params=params)
@@ -158,14 +160,28 @@ def post(
 def get_and_check_json(
     client: httpx.Client, url: str, key: str, expected_value
 ) -> None:
-    print(f"GET {url} ...")
-    response = request_with_retry(client, "GET", url)
-    data = response.json()
-    if data.get(key) == expected_value:
-        print(f"  [OK] {key} = {expected_value}")
-    else:
-        print(f"  [FAIL] expected {key}={expected_value}, got: {data}")
-        sys.exit(1)
+    print(f"Polling {url} until running=False ...")
+    deadline = time.time() + SIMULATION_WAIT_TIMEOUT_SECONDS
+
+    while time.time() < deadline:
+        response = request_with_retry(client, "GET", url)
+        data = response.json()
+
+        if data.get("running") is False:
+            if data.get(key) == expected_value:
+                print(f"  [OK] running=False and {key} = {expected_value}")
+                return
+
+            print(f"  [FAIL] expected {key}={expected_value}, got: {data}")
+            sys.exit(1)
+
+        time.sleep(SIMULATION_POLL_INTERVAL_SECONDS)
+
+    print(
+        "  [FAIL] timed out waiting for simulation completion "
+        f"after {SIMULATION_WAIT_TIMEOUT_SECONDS} seconds"
+    )
+    sys.exit(1)
 
 
 def get_and_check_line_count(client: httpx.Client, url: str, min_lines: int) -> None:
@@ -182,10 +198,10 @@ def get_and_check_line_count(client: httpx.Client, url: str, min_lines: int) -> 
 def main() -> None:
     with httpx.Client(timeout=HTTP_TIMEOUT_DEFAULT) as client:
         print("Waiting for required services to become reachable ...")
-        wait_for_service_ready(client, "http://localhost:3000/setup")
-        wait_for_service_ready(client, "http://localhost:3001/upload")
-        wait_for_service_ready(client, "http://localhost:3002/upload")
-        wait_for_service_ready(client, "http://localhost:3010/upload")
+        wait_for_service_ready(client, "http://localhost:3000/openapi.json")
+        wait_for_service_ready(client, "http://localhost:3001/openapi.json")
+        wait_for_service_ready(client, "http://localhost:3002/openapi.json")
+        wait_for_service_ready(client, "http://localhost:3010/openapi.json")
 
         # --- Setup simulators ---
         upload_file(client, "http://localhost:3001/upload", "gtfs.zip")  # scheduled
@@ -214,9 +230,6 @@ def main() -> None:
             "successfully run.",
             params={"until": 2880},
         )
-
-        print("Waiting 10 seconds for simulation to progress ...")
-        time.sleep(10)
 
         get_and_check_json(client, "http://localhost:3000/peek", "success", True)
         post(client, "http://localhost:3000/finish", "successfully finished.")

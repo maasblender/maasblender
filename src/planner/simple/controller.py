@@ -146,7 +146,17 @@ async def meters_for_all_stops_combinations(stops: list[query.LocationSetting]):
 # `response_model=list[Path]` does not work
 # @app.post("/plan", response_model=list[Path])
 @app.post("/plan")
-async def plan(org: query.LocationSetting, dst: query.LocationSetting, dept: float):
+async def plan(
+    org: query.LocationSetting,
+    dst: query.LocationSetting,
+    dept: float,
+    arrv: typing.Optional[float] = None,
+):
+    if arrv is not None:
+        raise fastapi.HTTPException(
+            status_code=fastapi.status.HTTP_501_NOT_IMPLEMENTED,
+            detail="arrive-by routing is not implemented in simple planner.",
+        )
     return planner.plan(
         org=Location(id_=org.locationId, lat=org.lat, lng=org.lng),
         dst=Location(id_=dst.locationId, lat=dst.lat, lng=dst.lng),

@@ -18,6 +18,7 @@ class SenDemandsSetting(BaseModel):
     service: str | None = None
     user_type: str | None = None
     resv: float | None = None
+    arrive_by: bool = False
 
 
 class Setup(BaseModel):

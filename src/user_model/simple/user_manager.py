@@ -333,6 +333,7 @@ class UserManager(Runner):
         org: Location,
         dst: Location,
         dept: float | None,
+        arrv: float | None,
         service: str | None,
     ):
         """Add the mobility demand of the user.
@@ -342,7 +343,7 @@ class UserManager(Runner):
         """
         dept = dept if dept else self.env.now
 
-        route_plans = await self.route_planner.plan(org, dst, dept)
+        route_plans = await self.route_planner.plan(org, dst, dept, arrv)
 
         tasks = self.plans_to_trips(route_plans, service)
         user = User(

@@ -149,6 +149,7 @@ async def triggered(event: query.TriggeredEvent | events.Event):
                     lng=event.details.dst.lng,
                 ),
                 dept=event.details.dept,
+                arrv=event.details.arrv,
                 fixed_service=event.details.service,
             )
         case query.ReservedEvent():

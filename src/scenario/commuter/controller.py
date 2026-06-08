@@ -6,7 +6,8 @@ import math
 import fastapi
 
 from commuter import CommuterScenario
-from jschema import query, response
+from jschema.query import Setup
+from jschema.response import Message, Peek, Step, StepEvent, User
 from mblib.io.log import init_logger
 from mblib.jschema import events, spec
 
@@ -41,38 +42,40 @@ scenario: CommuterScenario | None = None
     "/spec", response_model=spec.SpecificationResponse, response_model_exclude_none=True
 )
 def get_specification():
-    builder = spec.EventSpecificationBuilder(step=response.StepEvent)
-    builder.set_feature(events.EventType.DEMAND, declared=["demand_id", "pre_reserve"])
+    builder = spec.EventSpecificationBuilder(step=StepEvent)
+    builder.set_feature(
+        events.EventType.DEMAND, declared=["demand_id", "pre_reserve", "arrive_by"]
+    )
     return builder.get_specification_response(version=events.VERSION_1)
 
 
-@app.post("/setup", response_model=response.Message)
-def setup(settings: query.Setup):
+@app.post("/setup", response_model=Message)
+def setup(settings: Setup):
     global scenario
     scenario = CommuterScenario()
     scenario.setup(settings.commuters, settings.demandIDFormat)
-    return response.Message(message="successfully configured.")
+    return Message(message="successfully configured.")
 
 
-@app.get("/users", response_model=list[response.User], response_model_exclude_none=True)
+@app.get("/users", response_model=list[User], response_model_exclude_none=True)
 def get_users():
     return scenario.users()
 
 
-@app.post("/start", response_model=response.Message)
+@app.post("/start", response_model=Message)
 def start():
     scenario.start()
-    return response.Message(message="successfully started.")
+    return Message(message="successfully started.")
 
 
-@app.get("/peek", response_model=response.Peek)
+@app.get("/peek", response_model=Peek)
 def peek():
     peek_time = scenario.peek()
     next_ = peek_time if math.isfinite(peek_time) else -1
-    return response.Peek(next=next_)
+    return Peek(next=next_)
 
 
-@app.post("/step", response_model=response.Step, response_model_exclude_none=True)
+@app.post("/step", response_model=Step, response_model_exclude_none=True)
 def step():
     now, events = scenario.step()
     return {"now": now, "events": events}
@@ -83,8 +86,8 @@ def triggered(_: events.Event):
     pass
 
 
-@app.post("/finish", response_model=response.Message)
+@app.post("/finish", response_model=Message)
 def finish():
     global scenario
     scenario = None
-    return response.Message(message="successfully finished.")
+    return Message(message="successfully finished.")

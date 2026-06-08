@@ -17,7 +17,8 @@ UNIT_TIME = 1.0  # min
 
 class Demand(typing.NamedTuple):
     time: float | None  # reserving time in case of advance reservation
-    dept: float
+    dept: float | None  # desired departure time
+    arrv: float | None  # desired arrival time (arrive-by)
     user_id: str
     demand_id: str
     info: DemandInfo
@@ -25,7 +26,8 @@ class Demand(typing.NamedTuple):
 
 class TenDemand(typing.NamedTuple):
     time: float | None  # reserving time in case of advance reservation
-    dept: float
+    dept: float | None  # desired departure time
+    arrv: float | None  # desired arrival time (arrive-by)
     info: DemandInfo
 
 
@@ -34,6 +36,7 @@ class SenDemand(typing.NamedTuple):
     end: float
     expected_demands: float
     time: float | None  # reserving time in case of advance reservation
+    arrive_by: bool
     info: DemandInfo
 
     @property
@@ -67,7 +70,10 @@ class SenDemand(typing.NamedTuple):
         for i in range(int(self.period // UNIT_TIME)):
             elapsed = i * UNIT_TIME
             if random.random() < self.probability:
-                yield TenDemand(self.time, self.begin + elapsed, self.info)
+                if self.arrive_by:
+                    yield TenDemand(self.time, None, self.begin + elapsed, self.info)
+                else:
+                    yield TenDemand(self.time, self.begin + elapsed, None, self.info)
 
 
 def make_demands(setting: jschema.query.Setup):
@@ -77,6 +83,7 @@ def make_demands(setting: jschema.query.Setup):
             end=sen.end,
             expected_demands=sen.expected_demands,
             time=sen.resv,
+            arrive_by=sen.arrive_by,
             info=DemandInfo(
                 org=Location(
                     location_id=sen.org.locationId,
@@ -104,6 +111,7 @@ def make_demands(setting: jschema.query.Setup):
         Demand(
             time=e.time,
             dept=e.dept,
+            arrv=e.arrv,
             user_id=next(user_id_gen),
             demand_id=next(demand_id_gen),
             info=e.info,
@@ -149,23 +157,27 @@ class DemandGenerator:
         ]
 
     def _demand(self, demand: Demand):
-        if demand.time is None:  # immediate reservation
-            yield self.env.timeout(demand.dept)  # wait for departure time
-            self._events.append(
-                DemandEvent(
-                    user_id=demand.user_id,
-                    demand_id=demand.demand_id,
-                    dept=None,
-                    info=demand.info,
-                )
+        # depart-at: emit the demand at the reservation time,
+        # or at ``dept`` when the demand is not pre-reserved.
+        if demand.dept and demand.arrv is None:
+            demand_time = demand.time if demand.time else demand.dept
+            dept = demand.dept if demand.time else None
+        # arrive-by: emit the demand at the reservation time,
+        # or immediately when no reservation time is provided.
+        elif demand.arrv and demand.dept is None:
+            demand_time = demand.time if demand.time else 0.0
+            dept = None
+        # Exactly one of ``dept`` or ``arrv`` must be set.
+        else:
+            raise ValueError("a demand must define exactly one of `dept` or `arrv`")
+
+        yield self.env.timeout(demand_time)
+        self._events.append(
+            DemandEvent(
+                user_id=demand.user_id,
+                demand_id=demand.demand_id,
+                dept=dept,
+                arrv=demand.arrv,
+                info=demand.info,
             )
-        else:  # advance reservation
-            yield self.env.timeout(demand.time)  # wait for reservation time
-            self._events.append(
-                DemandEvent(
-                    user_id=demand.user_id,
-                    demand_id=demand.demand_id,
-                    dept=demand.dept,
-                    info=demand.info,
-                )
-            )
+        )

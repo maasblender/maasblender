@@ -303,10 +303,15 @@ async def meters_for_all_stops_combinations(stops: list[query.LocationSetting]):
 
 
 @app.post("/plan", response_model=list[Path])
-async def plan(org: query.LocationSetting, dst: query.LocationSetting, dept: float):
+async def plan(
+    org: query.LocationSetting,
+    dst: query.LocationSetting,
+    dept: float,
+    arrv: typing.Optional[float] = None,
+):
     org = Location(id_=org.locationId, lat=org.lat, lng=org.lng)
     dst = Location(id_=dst.locationId, lat=dst.lat, lng=dst.lng)
-    plans = await planner.plan(org, dst, dept)
+    plans = await planner.plan(org, dst, dept=dept, arrv=arrv)
     return plans
 
 
