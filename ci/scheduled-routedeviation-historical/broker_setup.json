@@ -27,7 +27,8 @@
             "lng": 137.2044729
           },
           "time": 540.0,
-          "dept": 540.0
+          "dept": 540.0,
+          "service": "gtfs"
         },
         {
           "org": {
@@ -98,6 +99,15 @@
             }
           ],
           "agency_id": "7230001002032"
+        },
+        "route_deviation": {
+          "type": "gtfs_flex",
+          "input_files": [
+            {
+              "filename": "flex.zip"
+            }
+          ],
+          "agency_id": "route_deviation"
         }
       },
       "reference_time": "20230404",
