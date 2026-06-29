@@ -64,10 +64,20 @@ class Planner:
     async def setup(self, setting: typing.Mapping):
         await self._post("setup", data=setting)
 
-    async def plan(self, org: LocationSetting, dst: LocationSetting, dept: float):
+    async def plan(
+        self,
+        org: LocationSetting,
+        dst: LocationSetting,
+        dept: float,
+        arrv: float | None = None,
+    ):
+        params = {"dept": dept}
+        if arrv is not None:
+            params["arrv"] = arrv
+
         response = await self._post(
             method="plan",
             data={"org": org.model_dump(), "dst": dst.model_dump()},
-            params={"dept": dept},
+            params=params,
         )
         return response

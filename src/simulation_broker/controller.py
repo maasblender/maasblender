@@ -220,9 +220,14 @@ def run(until: int | float | None, background_tasks: fastapi.BackgroundTasks):
 
 
 @app.post("/plan", response_model=list[Path])
-async def plan(org: query.LocationSetting, dst: query.LocationSetting, dept: float):
+async def plan(
+    org: query.LocationSetting,
+    dst: query.LocationSetting,
+    dept: float,
+    arrv: float | None = None,
+):
     plans = await asyncio.gather(
-        *[planner.plan(org, dst, dept) for planner in manager.planners.values()]
+        *[planner.plan(org, dst, dept, arrv) for planner in manager.planners.values()]
     )
     return [path for plan_ in plans for path in plan_]  # flatten
 
