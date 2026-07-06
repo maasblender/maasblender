@@ -190,7 +190,9 @@ class OpenTripPlanner:
             maxTransfers: 1
           ) {
             itineraries {
-              walkDistance 
+                legs {
+                    distance
+                }
             }
           }
         }
@@ -207,7 +209,12 @@ class OpenTripPlanner:
         )
 
         if response["plan"]["itineraries"]:
-            return response["plan"]["itineraries"][0]["walkDistance"]
+            # すべての legs の distance を合計
+            total_distance = sum(
+                leg.get("distance", 0)
+                for leg in response["plan"]["itineraries"][0]["legs"]
+            )
+            return total_distance
         else:
             return 0
 
@@ -309,6 +316,11 @@ class OpenTripPlanner:
             service = self.services[org["vehicleRentalStation"]["network"]]
             org_id = id_from_gtfs_id(org["vehicleRentalStation"]["stationId"])
             dst_id = id_from_gtfs_id(dst["vehicleRentalStation"]["stationId"])
+        elif leg["mode"] == "FLEX":
+            # Flex
+            service = "ondemand"
+            org_id = org["name"]
+            dst_id = dst["name"]
         # GTFS
         else:
             service = self.services[id_from_gtfs_id(leg["agency"]["gtfsId"])]

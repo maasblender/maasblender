@@ -107,8 +107,8 @@ class GtfsFlexFilesReader:
             {
                 row["trip_id"]: StopTime(
                     group=self.location_groups[location_group_id],
-                    start_window=str_time(row["start_pickup_dropoff_window"]),
-                    end_window=str_time(row["end_pickup_dropoff_window"]),
+                    start_window=str_time(row["start_pickup_drop_off_window"]),
+                    end_window=str_time(row["end_pickup_drop_off_window"]),
                 )
             }
         )

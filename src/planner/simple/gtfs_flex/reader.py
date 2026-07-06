@@ -36,6 +36,7 @@ class FilesReader:
         for filename, parse in {
             "stops.txt": self._parse_stop,
             "location_groups.txt": self._parse_location_groups,
+            "location_group_stops.txt": self._parse_location_group_stops,
             "calendar.txt": self._parse_calender,
             "calendar_dates.txt": self._parse_calender_dates,
             "stop_times.txt": self._parse_stop_time,
@@ -63,8 +64,14 @@ class FilesReader:
         if not group:
             group = Group(group_id=group_id, name=row["location_group_name"])
             self.location_groups[group_id] = group
-        group.locations.append(self.stops[row["location_id"]])
+        # in new GTFS FLEX spec., separated this 'location_id' column into location_group_stops.txt
+        if location_id := row.get("location_id", None):
+            group.locations.append(self.stops[location_id])
 
+    def _parse_location_group_stops(self, row: typing.Mapping[str, str]):
+        group_id = row["location_group_id"]
+        self.location_groups[group_id].locations.append(self.stops[row["stop_id"]])
+        
     def _parse_calender(self, row: typing.Mapping[str, str]):
         self._services.update(
             {
@@ -92,8 +99,8 @@ class FilesReader:
             {
                 row["trip_id"]: StopTime(
                     group=self.location_groups[row["stop_id"]],
-                    start_window=str_time(row["start_pickup_dropoff_window"]),
-                    end_window=str_time(row["end_pickup_dropoff_window"]),
+                    start_window=str_time(row["start_pickup_drop_off_window"]),
+                    end_window=str_time(row["end_pickup_drop_off_window"]),
                 )
             }
         )
