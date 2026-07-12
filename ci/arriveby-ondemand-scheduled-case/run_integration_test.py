@@ -200,7 +200,9 @@ def get_user_ids(events: list[dict[str, Any]], prefix: str) -> list[str]:
             details["userId"]
             for event in events
             if event.get("eventType") == "DEMAND"
-            if (details := event.get("details", {})).get("userId", "").startswith(prefix)
+            if (details := event.get("details", {}))
+            .get("userId", "")
+            .startswith(prefix)
         }
     )
 
@@ -253,9 +255,7 @@ def assert_any_generator_user_arrived(
             service_users.append(user_id)
 
     if not arrived_users:
-        print(
-            f"  [FAIL] no GU_* user arrived at {arrived}. checked users: {user_ids}"
-        )
+        print(f"  [FAIL] no GU_* user arrived at {arrived}. checked users: {user_ids}")
         sys.exit(1)
 
     if not service_users:
