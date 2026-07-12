@@ -32,16 +32,16 @@
         },
         {
           "org": {
-            "locationId": "toyama_station",
-            "lat": 36.7014265,
-            "lng": 137.210879
+            "locationId": "miyashita_bridge",
+            "lat": 36.696609,
+            "lng": 137.219074
           },
           "dst": {
             "locationId": "toyama_court",
             "lat": 36.6835921,
             "lng": 137.2044729
           },
-          "time": 540.0,
+          "time": 530.0,
           "dept": 540.0,
           "service": "route_deviation"
         }
@@ -71,7 +71,7 @@
       "reference_time": "20230404",
       "input_files": [
         {
-          "filename": "flex.zip"
+          "filename": "gtfs_flex.zip"
         }
       ],
       "mobility": {
@@ -90,6 +90,26 @@
           }
         ]
       },
+      "modes": [
+      {
+        "modes": [
+          { "mode": "WALK" },
+          { "mode": "TRANSIT" }
+        ]
+      },
+      {
+        "modes": [
+          { "mode": "WALK" },
+          { "mode": "FLEX", "qualifier": "DIRECT" }
+        ]
+      },
+      {
+        "modes": [
+          { "mode": "TRANSIT" },
+          { "mode": "FLEX", "qualifier": "ACCESS" },
+          { "mode": "FLEX", "qualifier": "EGRESS" }
+        ]
+      }],
       "networks": {
         "gtfs": {
           "type": "gtfs",
@@ -101,17 +121,17 @@
           "agency_id": "7230001002032"
         },
         "route_deviation": {
-          "type": "gtfs_flex",
+          "type": "gtfs",
           "input_files": [
             {
-              "filename": "flex.zip"
+              "filename": "gtfs_flex.zip"
             }
           ],
           "agency_id": "route_deviation"
         }
       },
       "reference_time": "20230404",
-      "walking_meters_per_minute": 80.0
+      "walking_meters_per_minute": 50.0
     }
   },
   "user": {

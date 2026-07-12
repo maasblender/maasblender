@@ -12,6 +12,7 @@ The script expects docker compose to already be up and ready.
 import json
 import os
 import random
+import shutil
 import sys
 import time
 from dataclasses import dataclass
@@ -199,7 +200,9 @@ def assert_departed_at(
     trips: List[Trip], departed_from: str, at: float, tolerance: float = 1e-6
 ) -> None:
     if not trips:
-        print(f"  [FAIL] no trips found. expected departure from {departed_from} at {at}")
+        print(
+            f"  [FAIL] no trips found. expected departure from {departed_from} at {at}"
+        )
         sys.exit(1)
 
     first_trip = trips[0]
@@ -248,22 +251,29 @@ def main() -> None:
         wait_for_service_ready(client, "http://localhost:3002/openapi.json")
         wait_for_service_ready(client, "http://localhost:3010/openapi.json")
 
+        # --- Compress gtfs_flex folder ---
+        print("Compressing gtfs_flex folder ...")
+        gtfs_flex_folder = file_path("gtfs_flex")
+        gtfs_flex_zip = file_path("gtfs_flex")
+        shutil.make_archive(gtfs_flex_zip, "zip", gtfs_flex_folder)
+        print("  [OK] gtfs_flex.zip created")
+
         # --- Setup simulators ---
         # scheduled
-        response = upload_file(client, "http://localhost:3001/upload", "gtfs.zip")  # scheduled
+        response = upload_file(
+            client, "http://localhost:3001/upload", "gtfs.zip"
+        )  # scheduled
         assert_message(response, "successfully uploaded. gtfs.zip")
 
         # route deviation
-        response = upload_file(
-            client, "http://localhost:3002/upload", "flex.zip"
-        )
-        assert_message(response, "successfully uploaded. flex.zip")
+        response = upload_file(client, "http://localhost:3002/upload", "gtfs_flex.zip")
+        assert_message(response, "successfully uploaded. gtfs_flex.zip")
 
         # --- Setup OpenTripPlanner ---
         response = upload_file(client, "http://localhost:3010/upload", "gtfs.zip")
         assert_message(response, "successfully uploaded. gtfs.zip")
-        response = upload_file(client, "http://localhost:3010/upload", "flex.zip")
-        assert_message(response, "successfully uploaded. flex.zip")
+        response = upload_file(client, "http://localhost:3010/upload", "gtfs_flex.zip")
+        assert_message(response, "successfully uploaded. gtfs_flex.zip")
         response = upload_file(client, "http://localhost:3010/upload", "otp-config.zip")
         assert_message(response, "successfully uploaded. otp-config.zip")
 
@@ -282,7 +292,7 @@ def main() -> None:
         # --- Lifecycle ---
         response = post(client, "http://localhost:3000/start")
         assert_message(response, "successfully started.")
-        response = post( client, "http://localhost:3000/run", params={"until": 2880})
+        response = post(client, "http://localhost:3000/run", params={"until": 2880})
         assert_message(response, "successfully run.")
 
         print("Peeking simulation until running=False ...")
@@ -315,7 +325,9 @@ def main() -> None:
         # --- Retrieve results ---
         events = [
             json.loads(line)
-            for line in request_with_retry(client, "GET", "http://localhost:3000/events")
+            for line in request_with_retry(
+                client, "GET", "http://localhost:3000/events"
+            )
             .text.strip()
             .splitlines()
         ]
@@ -327,10 +339,10 @@ def main() -> None:
     assert_arrived_at(trips, "toyama_court")
     assert_used_service(trips, "gtfs")
 
-    # --- historical user: station -> court at 540 using route-deviation service ---
+    # --- historical user: miyashita_bridge -> court at 545 using route-deviation service ---
     print("Checking U_2 trips ...")
     trips = get_user_trips(events, user_id="U_2")
-    assert_departed_at(trips, "toyama_station", 540.0)
+    assert_departed_at(trips, "rd_station_court", 545.0)
     assert_arrived_at(trips, "toyama_court")
     assert_used_service(trips, "route_deviation")
 

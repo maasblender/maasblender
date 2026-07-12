@@ -8,6 +8,7 @@ Run from the directory that contains this script (ci/ondemand-oneway-generator-c
 
 The script expects docker compose to already be up and ready.
 """
+
 import json
 import os
 import random
@@ -198,7 +199,9 @@ def assert_departed_at(
     trips: List[Trip], departed_from: str, at: float, tolerance: float = 1e-6
 ) -> None:
     if not trips:
-        print(f"  [FAIL] no trips found. expected departure from {departed_from} at {at}")
+        print(
+            f"  [FAIL] no trips found. expected departure from {departed_from} at {at}"
+        )
         sys.exit(1)
 
     first_trip = trips[0]
@@ -263,13 +266,15 @@ def split_first_commuter_round_trip(
     # `inbound_end_offset` is a 0-based offset within `trips[pivot_index + 1 :]`,
     # not within the original `trips` list.
     inbound_end_offset = next(
-        (i for i, trip in enumerate(trips[pivot_index + 1 :]) if trip.dst == return_dst),
+        (
+            i
+            for i, trip in enumerate(trips[pivot_index + 1 :])
+            if trip.dst == return_dst
+        ),
         -1,
     )
     if inbound_end_offset < 0:
-        print(
-            f"  [FAIL] no return destination found: {return_dst}. trips: {trips}"
-        )
+        print(f"  [FAIL] no return destination found: {return_dst}. trips: {trips}")
         sys.exit(1)
 
     # Convert the relative offset back to the original list's slice range.
@@ -362,7 +367,11 @@ def main() -> None:
         # --- Retrieve results ---
         events = [
             json.loads(line)
-            for line in request_with_retry(client, "GET", "http://localhost:3000/events").text.strip().splitlines()
+            for line in request_with_retry(
+                client, "GET", "http://localhost:3000/events"
+            )
+            .text.strip()
+            .splitlines()
         ]
 
     # --- generator user: deterministic first demand departs at 553 and uses ondemand ---
