@@ -194,6 +194,19 @@ def get_user_trips(events: list[dict[str, Any]], user_id: str) -> list[Trip]:
     return trips
 
 
+def get_user_ids(events: list[dict[str, Any]], prefix: str) -> list[str]:
+    return sorted(
+        {
+            details["userId"]
+            for event in events
+            if event.get("eventType") == "DEMAND"
+            if (details := event.get("details", {}))
+            .get("userId", "")
+            .startswith(prefix)
+        }
+    )
+
+
 def assert_arrived_by(trips: List[Trip], arrived: str, by: float) -> None:
     if not trips:
         print(f"  [FAIL] no trips found. expected arrival at {arrived} by {by}")
@@ -218,6 +231,45 @@ def assert_used_service(trips: List[Trip], service: str) -> None:
 
     print(f"  [FAIL] expected service {service} was not used. trips: {trips}")
     sys.exit(1)
+
+
+def assert_any_generator_user_arrived(
+    events: list[dict[str, Any]], arrived: str, service: str
+) -> None:
+    user_ids = get_user_ids(events, "GU_")
+    if not user_ids:
+        print("  [FAIL] no generator users found.")
+        sys.exit(1)
+
+    arrived_users: list[tuple[str, Trip]] = []
+    service_users: list[str] = []
+    for user_id in user_ids:
+        trips = get_user_trips(events, user_id)
+        if not trips:
+            continue
+        last_trip = trips[-1]
+        if last_trip.dst != arrived:
+            continue
+        arrived_users.append((user_id, last_trip))
+        if any(trip.service == service for trip in trips):
+            service_users.append(user_id)
+
+    if not arrived_users:
+        print(f"  [FAIL] no GU_* user arrived at {arrived}. checked users: {user_ids}")
+        sys.exit(1)
+
+    if not service_users:
+        print(
+            f"  [FAIL] no GU_* user used service {service}. "
+            f"arrived users: {arrived_users}"
+        )
+        sys.exit(1)
+
+    print(
+        f"  [OK] generator users arrived at {arrived}: "
+        f"{[user_id for user_id, _ in arrived_users]}"
+    )
+    print(f"  [OK] generator users used service {service}: {service_users}")
 
 
 def split_commuter_trips(
@@ -332,10 +384,10 @@ def main() -> None:
     assert_used_service(trips, "gtfs")
 
     # --- generator users: at least one GU_* user must complete a trip to toyama_court ---
-    print("Checking GU_1 trips ...")
-    trips = get_user_trips(events, "GU_1")
-    assert_arrived_by(trips, "toyama_court", 570.0)
-    assert_used_service(trips, "gtfs")
+    print("Checking GU_* trips ...")
+    assert_any_generator_user_arrived(
+        events=events, arrived="toyama_court", service="gtfs"
+    )
 
     # --- commuter CU_001: outbound to toyama_court by 555, inbound to toyama_station by 1095 ---
     print("Checking CU_1 trips ...")

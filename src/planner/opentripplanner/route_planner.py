@@ -51,6 +51,11 @@ class OpenTripPlanner:
                     {"mode": "TRANSIT"},
                 ],
                 [{"mode": "WALK"}, {"mode": "FLEX", "qualifier": "DIRECT"}],
+                [
+                    {"mode": "TRANSIT"},
+                    {"mode": "FLEX", "qualifier": "ACCESS"},
+                    {"mode": "FLEX", "qualifier": "EGRESS"},
+                ],
             ]
         )
         self.services = services  # key: agency_id, value: service name

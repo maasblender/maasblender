@@ -1,0 +1,4 @@
+trip_id,arrival_time,departure_time,stop_id,location_id,stop_sequence,stop_headsign,pickup_type,drop_off_type,shape_dist_traveled,start_pickup_drop_off_window,end_pickup_drop_off_window
+RD,09:00:00,09:00:00,toyama_station,,1,Toyama Court,0,1,0.0,,
+RD,,,,rd_station_court,2,,3,3,,09:00:00,09:10:00
+RD,09:10:00,09:10:00,toyama_court,,3,Toyama Court,1,0,2200.0,,

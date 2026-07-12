@@ -9,11 +9,14 @@ Run from the directory that contains this script (ci/scheduled-routedeviation-hi
 The script expects docker compose to already be up and ready.
 """
 
+import json
 import os
 import random
+import shutil
 import sys
 import time
-from typing import Optional
+from dataclasses import dataclass
+from typing import Optional, Any, List
 
 import httpx
 
@@ -101,7 +104,7 @@ def wait_for_service_ready(
     sys.exit(1)
 
 
-def upload_file(client: httpx.Client, url: str, filename: str) -> None:
+def upload_file(client: httpx.Client, url: str, filename: str) -> dict[str, Any]:
     filepath = file_path(filename)
     print(f"Uploading {filename} to {url} ...")
     with open(filepath, "rb") as f:
@@ -112,87 +115,132 @@ def upload_file(client: httpx.Client, url: str, filename: str) -> None:
         url,
         files={"upload_file": (filename, payload, "application/octet-stream")},
     )
-    data = response.json()
-    expected = f"successfully uploaded. {filename}"
-    if data.get("message") == expected:
-        print(f"  [OK] {data['message']}")
-    else:
-        print(f"  [FAIL] unexpected response: {data}")
-        sys.exit(1)
+    return response.json()
 
 
-def post_json(
-    client: httpx.Client, url: str, filename: str, expected_message: str
-) -> None:
-    filepath = file_path(filename)
-    print(f"POST {url} with {filename} ...")
-    with open(filepath, "r", encoding="utf-8") as f:
-        body = f.read()
-    response = request_with_retry(
-        client,
-        "POST",
-        url,
-        headers={"Content-Type": "application/json"},
-        content=body,
-        timeout=HTTP_TIMEOUT_SETUP,
-    )
-    data = response.json()
+def assert_message(data: dict[str, Any], expected_message: str) -> None:
     if data.get("message") == expected_message:
         print(f"  [OK] {data['message']}")
     else:
-        print(f"  [FAIL] unexpected response: {data}")
+        print(f"  [FAIL] expected message={expected_message!r}, got: {data}")
         sys.exit(1)
 
 
 def post(
-    client: httpx.Client, url: str, expected_message: str, params: Optional[dict] = None
+    client: httpx.Client,
+    url: str,
+    params: Optional[dict] = None,
+    **kwargs,
+) -> dict[str, Any]:
+    return request_with_retry(client, "POST", url, params=params, **kwargs).json()
+
+
+@dataclass
+class Trip:
+    demand_id: str
+    service: str
+    dept: float
+    org: str
+    arrv: float
+    dst: str
+
+    def __str__(self) -> str:
+        return (
+            f"dept={self.dept} from {self.org} "
+            f"via {self.service} -> arrv={self.arrv} "
+            f"at {self.dst}"
+        )
+
+
+def get_user_trips(events: list[dict[str, Any]], user_id: str) -> list[Trip]:
+    """Return only completed trips for the specified user."""
+
+    departure: dict[str, Any] = {}
+    trips: list[Trip] = []
+    for event in events:
+        details = event.get("details", {})
+        if details.get("userId") != user_id:
+            continue
+
+        if event["eventType"] == "DEPARTED":
+            departure = {
+                "demand_id": details["demandId"],
+                "service": event["source"],
+                "dept": float(event["time"]),
+                "org": details["location"]["locationId"],
+            }
+            continue
+
+        if event["eventType"] == "ARRIVED":
+            arrival: dict[str, Any] = {
+                "demand_id": details["demandId"],
+                "service": event["source"],
+                "arrv": float(event["time"]),
+                "dst": details["location"]["locationId"],
+            }
+
+            if departure["service"] != arrival["service"]:
+                sys.exit(1)
+
+            trips.append(
+                Trip(
+                    demand_id=departure["demand_id"],
+                    service=departure["service"],
+                    dept=departure["dept"],
+                    org=departure["org"],
+                    arrv=arrival["arrv"],
+                    dst=arrival["dst"],
+                )
+            )
+
+    return trips
+
+
+def assert_departed_at(
+    trips: List[Trip], departed_from: str, at: float, tolerance: float = 1e-6
 ) -> None:
-    print(f"POST {url} ...")
-    response = request_with_retry(client, "POST", url, params=params)
-    data = response.json()
-    if data.get("message") == expected_message:
-        print(f"  [OK] {data['message']}")
-    else:
-        print(f"  [FAIL] unexpected response: {data}")
+    if not trips:
+        print(
+            f"  [FAIL] no trips found. expected departure from {departed_from} at {at}"
+        )
         sys.exit(1)
 
-
-def get_and_check_json(
-    client: httpx.Client, url: str, key: str, expected_value
-) -> None:
-    print(f"Polling {url} until running=False ...")
-    deadline = time.time() + SIMULATION_WAIT_TIMEOUT_SECONDS
-
-    while time.time() < deadline:
-        response = request_with_retry(client, "GET", url)
-        data = response.json()
-
-        if data.get("running") is False:
-            if data.get(key) == expected_value:
-                print(f"  [OK] running=False and {key} = {expected_value}")
-                return
-
-            print(f"  [FAIL] expected {key}={expected_value}, got: {data}")
-            sys.exit(1)
-
-        time.sleep(SIMULATION_POLL_INTERVAL_SECONDS)
+    first_trip = trips[0]
+    if first_trip.org == departed_from and abs(first_trip.dept - at) <= tolerance:
+        print(f"  [OK] departed from {departed_from} at {at}: {first_trip}")
+        return
 
     print(
-        "  [FAIL] timed out waiting for simulation completion "
-        f"after {SIMULATION_WAIT_TIMEOUT_SECONDS} seconds"
+        f"  [FAIL] expected first departure from {departed_from} at {at}, "
+        f"got: {first_trip}. all trips: {trips}"
     )
     sys.exit(1)
 
 
-def get_and_check_line_count(client: httpx.Client, url: str, min_lines: int) -> None:
-    print(f"GET {url} ...")
-    response = request_with_retry(client, "GET", url)
-    line_count = len(response.text.strip().splitlines())
-    if line_count >= min_lines:
-        print(f"  [OK] line count is {line_count} (>= {min_lines})")
-    else:
-        print(f"  [FAIL] line count is only {line_count} (expected >= {min_lines})")
+def assert_arrived_at(trips: List[Trip], arrived: str) -> None:
+    if not trips:
+        print(f"  [FAIL] no trips found. expected arrival at {arrived}")
         sys.exit(1)
+
+    last_trip = trips[-1]
+    if last_trip.dst == arrived:
+        print(f"  [OK] arrived at {arrived}: {last_trip}")
+        return
+
+    print(
+        f"  [FAIL] expected final arrival at {arrived}, "
+        f"got: {last_trip}. all trips: {trips}"
+    )
+    sys.exit(1)
+
+
+def assert_used_service(trips: List[Trip], service: str) -> None:
+    if any(trip.service == service for trip in trips):
+        print(f"  [OK] service used: {service}")
+        return
+
+    print(f"  [FAIL] expected service {service} was not used. trips: {trips}")
+    sys.exit(1)
 
 
 def main() -> None:
@@ -203,39 +251,100 @@ def main() -> None:
         wait_for_service_ready(client, "http://localhost:3002/openapi.json")
         wait_for_service_ready(client, "http://localhost:3010/openapi.json")
 
+        # --- Compress gtfs_flex folder ---
+        print("Compressing gtfs_flex folder ...")
+        gtfs_flex_folder = file_path("gtfs_flex")
+        gtfs_flex_zip = file_path("gtfs_flex")
+        shutil.make_archive(gtfs_flex_zip, "zip", gtfs_flex_folder)
+        print("  [OK] gtfs_flex.zip created")
+
         # --- Setup simulators ---
-        upload_file(client, "http://localhost:3001/upload", "gtfs.zip")  # scheduled
-        upload_file(
-            client, "http://localhost:3002/upload", "flex.zip"
-        )  # route deviation
+        # scheduled
+        response = upload_file(
+            client, "http://localhost:3001/upload", "gtfs.zip"
+        )  # scheduled
+        assert_message(response, "successfully uploaded. gtfs.zip")
+
+        # route deviation
+        response = upload_file(client, "http://localhost:3002/upload", "gtfs_flex.zip")
+        assert_message(response, "successfully uploaded. gtfs_flex.zip")
 
         # --- Setup OpenTripPlanner ---
-        upload_file(client, "http://localhost:3010/upload", "gtfs.zip")
-        upload_file(client, "http://localhost:3010/upload", "flex.zip")
-        upload_file(client, "http://localhost:3010/upload", "otp-config.zip")
+        response = upload_file(client, "http://localhost:3010/upload", "gtfs.zip")
+        assert_message(response, "successfully uploaded. gtfs.zip")
+        response = upload_file(client, "http://localhost:3010/upload", "gtfs_flex.zip")
+        assert_message(response, "successfully uploaded. gtfs_flex.zip")
+        response = upload_file(client, "http://localhost:3010/upload", "otp-config.zip")
+        assert_message(response, "successfully uploaded. otp-config.zip")
 
         # --- Setup broker ---
-        post_json(
+        with open(file_path("broker_setup.json"), "r", encoding="utf-8") as f:
+            body = f.read()
+        response = post(
             client,
             "http://localhost:3000/setup",
-            "broker_setup.json",
-            "successfully configured.",
+            headers={"Content-Type": "application/json"},
+            content=body,
+            timeout=HTTP_TIMEOUT_SETUP,
         )
+        assert_message(response, "successfully configured.")
 
         # --- Lifecycle ---
-        post(client, "http://localhost:3000/start", "successfully started.")
-        post(
-            client,
-            "http://localhost:3000/run",
-            "successfully run.",
-            params={"until": 2880},
-        )
+        response = post(client, "http://localhost:3000/start")
+        assert_message(response, "successfully started.")
+        response = post(client, "http://localhost:3000/run", params={"until": 2880})
+        assert_message(response, "successfully run.")
 
-        get_and_check_json(client, "http://localhost:3000/peek", "success", True)
-        post(client, "http://localhost:3000/finish", "successfully finished.")
+        print("Peeking simulation until running=False ...")
+        deadline = time.time() + SIMULATION_WAIT_TIMEOUT_SECONDS
 
-        # --- Validate results ---
-        get_and_check_line_count(client, "http://localhost:3000/events", min_lines=200)
+        while True:
+            time.sleep(SIMULATION_POLL_INTERVAL_SECONDS)
+            data = request_with_retry(
+                client, "GET", "http://localhost:3000/peek"
+            ).json()
+
+            if data.get("running") is False:
+                if data.get("success"):
+                    print(f"  [OK] running=False with success=True: {data}")
+                    break
+
+                print(f"  [FAIL] expected success=True, got: {data}")
+                sys.exit(1)
+
+            if time.time() > deadline:
+                print(
+                    "  [FAIL] timed out waiting for simulation completion "
+                    f"after {SIMULATION_WAIT_TIMEOUT_SECONDS} seconds"
+                )
+                sys.exit(1)
+
+        response = post(client, "http://localhost:3000/finish")
+        assert_message(response, "successfully finished.")
+
+        # --- Retrieve results ---
+        events = [
+            json.loads(line)
+            for line in request_with_retry(
+                client, "GET", "http://localhost:3000/events"
+            )
+            .text.strip()
+            .splitlines()
+        ]
+
+    # --- historical user: station -> court at 540 using scheduled service ---
+    print("Checking U_1 trips ...")
+    trips = get_user_trips(events, user_id="U_1")
+    assert_departed_at(trips, "toyama_station", 540.0)
+    assert_arrived_at(trips, "toyama_court")
+    assert_used_service(trips, "gtfs")
+
+    # --- historical user: miyashita_bridge -> court at 545 using route-deviation service ---
+    print("Checking U_2 trips ...")
+    trips = get_user_trips(events, user_id="U_2")
+    assert_departed_at(trips, "rd_station_court", 545.0)
+    assert_arrived_at(trips, "toyama_court")
+    assert_used_service(trips, "route_deviation")
 
     print("\nAll integration tests passed!")
 

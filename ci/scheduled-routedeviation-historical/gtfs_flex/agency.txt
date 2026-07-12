@@ -1,0 +1,2 @@
+agency_id,agency_name,agency_url,agency_timezone,agency_lang
+route_deviation,Route Deviation Demo,https://example.com,Asia/Tokyo,ja
