@@ -70,7 +70,7 @@ class GtfsFlexFilesReader:
         if not group:
             group = Group(group_id=group_id, name=row["location_group_name"])
             self.location_groups[group_id] = group
-        # in new GTFS FLEX spec., separated this 'location_id' column into location_group_stops.txt
+        # In OTP 2.5 and later, separated this 'location_id' column into location_group_stops.txt
         if location_id := row.get("location_id", None):
             group.locations.append(self.stops[location_id])
 
@@ -107,8 +107,8 @@ class GtfsFlexFilesReader:
             {
                 row["trip_id"]: StopTime(
                     group=self.location_groups[location_group_id],
-                    start_window=str_time(row["start_pickup_dropoff_window"]),
-                    end_window=str_time(row["end_pickup_dropoff_window"]),
+                    start_window=str_time(row["start_pickup_drop_off_window"]),
+                    end_window=str_time(row["end_pickup_drop_off_window"]),
                 )
             }
         )
