@@ -95,10 +95,12 @@ class FilesReader:
         )
 
     def _parse_stop_time(self, row: typing.Mapping[str, str]):
+        # "stop_id" column describes In old GTFS FLEX spec.
+        location_group_id = row.get("location_group_id") or row.get("stop_id")
         self._stop_times.update(
             {
                 row["trip_id"]: StopTime(
-                    group=self.location_groups[row["stop_id"]],
+                    group=self.location_groups[location_group_id],
                     start_window=str_time(row["start_pickup_drop_off_window"]),
                     end_window=str_time(row["end_pickup_drop_off_window"]),
                 )
