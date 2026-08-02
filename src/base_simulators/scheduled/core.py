@@ -60,7 +60,7 @@ class StopTime:
         arrival: timedelta | None = None,
         departure: timedelta | None = None,
     ):
-        assert arrival or departure
+        assert arrival is not None or departure is not None
         self.stop = stop
         self.arrival = arrival if arrival else departure
         self.departure = departure if departure else arrival
@@ -177,10 +177,10 @@ class Trip:
     def stops(self) -> list[Stop]:
         raise NotImplementedError()
 
-    def is_operation(self, at_date: date) -> bool:
+    def is_operation(self, at: date) -> bool:
         raise NotImplementedError()
 
-    def stop_times_at(self, at_date: date) -> list[StopTimeWithDateTime]:
+    def stop_times_at(self, at: date) -> list[StopTimeWithDateTime]:
         raise NotImplementedError()
 
     def start_time(self, at: date) -> datetime:
