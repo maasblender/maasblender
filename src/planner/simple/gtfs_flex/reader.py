@@ -1,14 +1,13 @@
 # SPDX-FileCopyrightText: 2023 TOYOTA MOTOR CORPORATION
 # SPDX-License-Identifier: Apache-2.0
-import typing
-import datetime
 import csv
+import datetime
 import io
-import zipfile
 import re
+import typing
+import zipfile
 
-from gtfs_flex.object import Stop, Group, StopTime, Service, Trip
-
+from gtfs_flex.object import Group, Service, Stop, StopTime, Trip
 
 p = re.compile(r"(\d\d?):(\d\d?):(\d\d?)")
 
@@ -23,16 +22,16 @@ def str_time(time: str):
 
 
 def str_date(time: str):
-    return datetime.datetime.strptime(time, "%Y%m%d").date()
+    return datetime.date.fromisoformat(f"{time[:4]}-{time[4:6]}-{time[6:8]}")
 
 
 class FilesReader:
     def __init__(self, archive: zipfile.ZipFile):
-        self.stops: typing.Dict[str, Stop] = {}
-        self.location_groups: typing.Dict[str, Group] = {}
-        self._stop_times: typing.Dict[str, StopTime] = {}
-        self._services: typing.Dict[str, Service] = {}
-        self.trips: typing.Dict[str, Trip] = {}
+        self.stops: dict[str, Stop] = {}
+        self.location_groups: dict[str, Group] = {}
+        self._stop_times: dict[str, StopTime] = {}
+        self._services: dict[str, Service] = {}
+        self.trips: dict[str, Trip] = {}
         for filename, parse in {
             "stops.txt": self._parse_stop,
             "location_groups.txt": self._parse_location_groups,

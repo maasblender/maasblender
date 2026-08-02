@@ -1,16 +1,16 @@
 # SPDX-FileCopyrightText: 2023 TOYOTA MOTOR CORPORATION
 # SPDX-License-Identifier: Apache-2.0
-import itertools
-import typing
-import logging
 import datetime
+import itertools
+import logging
+import typing
 
 import networkx as nx
+from core import Location, MobilityNetwork, Path, Trip
 from networkx.exception import NetworkXNoPath
 
-from core import Location, Path, Trip, MobilityNetwork
-from gtfs_flex.object import Trip as gtfs_Trip, Stop, StopTime
-
+from gtfs_flex.object import Stop, StopTime
+from gtfs_flex.object import Trip as gtfs_Trip
 
 logger = logging.getLogger(__name__)
 
@@ -34,8 +34,8 @@ class Network(MobilityNetwork):
         self.mobility_velocity = mobility_meters_per_minute
         self.walking_velocity = walking_meters_per_minute
         self.waiting_bus_time = expected_waiting_time
-        self.graphs: typing.Dict[datetime.date, nx.DiGraph] = {}
-        self.trips: typing.List[gtfs_Trip] = []
+        self.graphs: dict[datetime.date, nx.DiGraph] = {}
+        self.trips: list[gtfs_Trip] = []
 
     def setup(self, trips: typing.Collection[gtfs_Trip]):
         self.trips = trips
@@ -46,7 +46,7 @@ class Network(MobilityNetwork):
     def elapsed_until(self, date_time: datetime.datetime):
         return (date_time - self.start_time).total_seconds() / 60
 
-    def graph_from_stops(self, stops: typing.List[Stop]):
+    def graph_from_stops(self, stops: list[Stop]):
         graph = nx.DiGraph()
         for u, v in itertools.product(
             [Node(stop=stop, side="org") for stop in stops],
@@ -107,7 +107,7 @@ class Network(MobilityNetwork):
 
     def _nodes_on_shortest_path(
         self, graph: nx.DiGraph, org: Location, dst: Location
-    ) -> typing.Tuple[typing.List[Node], typing.List[float]]:
+    ) -> tuple[list[Node], list[float]]:
         # Add temporary nodes, indicating org/ dst location.
         for node in list(graph.nodes):
             node: Node
@@ -123,7 +123,7 @@ class Network(MobilityNetwork):
         # a list of nodes in the shortest path
         try:
             path = nx.shortest_path(graph, source=org, target=dst, weight="cost")
-            costs = [graph.edges[u, v]["cost"] for u, v in zip(path, path[1:])]
+            costs = [graph.edges[u, v]["cost"] for u, v in itertools.pairwise(path)]
             return path[1:-1], costs
         except NetworkXNoPath:
             return [], []
@@ -133,12 +133,12 @@ class Network(MobilityNetwork):
 
     def expected_arrival(
         self,
-        path: typing.List[Node],
-        costs: typing.List[float],
+        path: list[Node],
+        costs: list[float],
         dept: float,
         today: datetime.datetime,
         stop_time: StopTime,
-    ) -> typing.List[float]:
+    ) -> list[float]:
         assert len(path) == 2
         assert len(costs) == 3
         arrv0 = dept + costs[0]
@@ -166,7 +166,7 @@ class Network(MobilityNetwork):
 
     def nodes_on_shortest_path(
         self, org: Location, dst: Location, dept: float
-    ) -> typing.Tuple[typing.List[Node], typing.List[float]]:
+    ) -> tuple[list[Node], list[float]]:
         today = self.datetime_from(dept).replace(
             hour=0, minute=0, second=0, microsecond=0
         )

@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: 2022 TOYOTA MOTOR CORPORATION and MaaS Blender Contributors
 # SPDX-License-Identifier: Apache-2.0
 import typing
-from datetime import datetime, date, time, timedelta
+from datetime import date, datetime, time, timedelta
 
 from core import Location
 
@@ -35,8 +35,8 @@ class Service:
         self._start_day = start_date
         self._end_day = end_date
         self._weekday = [monday, tuesday, wednesday, thursday, friday, saturday, sunday]
-        self._added_exceptions: typing.List[date] = []
-        self._removed_exceptions: typing.List[date] = []
+        self._added_exceptions: list[date] = []
+        self._removed_exceptions: list[date] = []
 
     def append_exception(self, exception_date: date, added=True):
         if added:
@@ -79,12 +79,12 @@ class StopTimeWithDatetime:
 class Trip:
     """Sequence of two or more stops that occur during a specific time period."""
 
-    def __init__(self, service: Service, stop_times: typing.List[StopTime]):
+    def __init__(self, service: Service, stop_times: list[StopTime]):
         assert len(stop_times) >= 2
         self.service = service
         self._stop_times = stop_times
 
-    def stop_times(self, at: date) -> typing.List[StopTimeWithDatetime]:
+    def stop_times(self, at: date) -> list[StopTimeWithDatetime]:
         return (
             [StopTimeWithDatetime(stop_time, at) for stop_time in self._stop_times]
             if self.service.is_operation(at)

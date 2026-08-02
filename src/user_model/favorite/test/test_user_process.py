@@ -3,13 +3,14 @@
 import unittest
 
 import simpy
-
-import planner
 import user_manager
 from core import Location, User
-from event import Manager as EventManager, ReserveEvent, ReservedEvent, DepartEvent
-from planner import Route
+from event import DepartEvent, ReservedEvent, ReserveEvent
+from event import Manager as EventManager
 from user_manager import UserManager
+
+import planner
+from planner import Route
 
 # 以下の地名、座標などは以下の著作物を改変して利用しています。
 # まいどはやバスGTFS-JP、富山市、クリエイティブ・コモンズ・ライセンス　表示4.0国際

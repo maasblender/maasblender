@@ -1,10 +1,10 @@
 # SPDX-FileCopyrightText: 2022 TOYOTA MOTOR CORPORATION and MaaS Blender Contributors
 # SPDX-License-Identifier: Apache-2.0
+import datetime
 import typing
 from enum import Enum
-import datetime
 
-from pydantic import BaseModel, AnyHttpUrl, model_validator, conlist, constr
+from pydantic import AnyHttpUrl, BaseModel, conlist, constr, model_validator
 
 
 class LocationSetting(BaseModel):
@@ -69,10 +69,8 @@ class Setup(BaseModel):
     reference_time: constr(min_length=8, max_length=8)
     networks: typing.Mapping[
         str,
-        typing.Union[
-            GtfsNetworkSetting,
-            GbfsNetworkSetting,
-            GtfsFlexNetworkSetting,
-            MaaSSimNetworkSetting,
-        ],
+        GtfsNetworkSetting
+        | GbfsNetworkSetting
+        | GtfsFlexNetworkSetting
+        | MaaSSimNetworkSetting,
     ]

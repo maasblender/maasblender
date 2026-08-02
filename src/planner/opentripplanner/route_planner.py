@@ -7,11 +7,11 @@ import math
 import re
 import typing
 
-from gql import Client, gql
-from gql.transport.aiohttp import AIOHTTPTransport, log as aiohttp_logger
 import aiohttp
-
 from core import Location, Path, Trip, calc_distance
+from gql import Client, gql
+from gql.transport.aiohttp import AIOHTTPTransport
+from gql.transport.aiohttp import log as aiohttp_logger
 from jschema.response import DistanceMatrix
 
 logger = logging.getLogger(__name__)
@@ -73,9 +73,11 @@ class OpenTripPlanner:
 
     async def health(self):
         try:
-            async with aiohttp.ClientSession() as session:
-                async with session.get(f"{self.endpoint}/otp/actuators/health") as resp:
-                    result = await resp.json()
+            async with (
+                aiohttp.ClientSession() as session,
+                session.get(f"{self.endpoint}/otp/actuators/health") as resp,
+            ):
+                result = await resp.json()
             return result == {"status": "UP"}
         except aiohttp.ClientConnectionError:
             return False

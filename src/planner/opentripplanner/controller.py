@@ -1,27 +1,28 @@
 # SPDX-FileCopyrightText: 2023 TOYOTA MOTOR CORPORATION and MaaS Blender Contributors
 # SPDX-License-Identifier: Apache-2.0
-import aiohttp
 import asyncio
 import contextlib
 import datetime
-import fastapi
 import io
 import json
 import logging
 import math
 import pathlib
-import subprocess
 import typing
 import zipfile
+from copy import deepcopy
+from typing import Annotated
+from urllib.parse import quote as urlquote
+from urllib.parse import urljoin
 
+import aiohttp
+import fastapi
 from config import env
 from core import Location, Path
-from copy import deepcopy
 from jschema import query, response
 from mblib.io import httputil
 from mblib.io.log import init_logger
 from route_planner import OpenTripPlanner
-from urllib.parse import urljoin, quote as urlquote
 
 logger = logging.getLogger(__name__)
 app = fastapi.FastAPI(
@@ -50,7 +51,7 @@ def exception_callback(request: fastapi.Request, exc: Exception):
 file_table = httputil.FileManager()
 
 planner: OpenTripPlanner | None = None
-proc: subprocess.Popen | None = None
+proc: asyncio.subprocess.Process | None = None
 
 
 @app.on_event("shutdown")
@@ -59,8 +60,9 @@ async def shutdown_event():
     if planner:
         await planner.close()
         planner = None
-    if proc:
+    if proc and proc.returncode is None:
         proc.kill()
+        await proc.wait()
 
 
 @app.get("/gbfs/{zipname}/{filename}")
@@ -71,7 +73,7 @@ def get_gbfs(zipname: str, filename: str):
 
 
 @app.post("/upload", response_model=response.Message)
-def upload(upload_file: fastapi.UploadFile = fastapi.File(...)):
+def upload(upload_file: Annotated[fastapi.UploadFile, fastapi.File(...)]):
     try:
         file_table.put(upload_file)
     finally:
@@ -115,7 +117,7 @@ def update_config_files_for_gbfs(url_base: str):
             dir_gbfs = path_gbfs_json.parent
             # Get gbfs.json file path and URL
             gbfsname = dir_gbfs.relative_to(env.OPENTRIPPLANNER_GBFS_DIR)
-            url = urljoin(url_base, f"/gbfs/{str(gbfsname)}/gbfs.json")
+            url = urljoin(url_base, f"/gbfs/{gbfsname!s}/gbfs.json")
 
             # Set URL to gbfs.json for updaters element in router-config.json
             for updater in updaters:
@@ -134,7 +136,7 @@ def update_config_files_for_gbfs(url_base: str):
 
             # Set feed URL in each gbfs.json file
             with open_json_file_for_update(path_gbfs_json) as gbfs:
-                for language, item in gbfs["data"].items():
+                for item in gbfs["data"].values():
                     for feed in item["feeds"]:
                         name = feed["name"]
                         path_json = dir_gbfs / f"{name}.json"
@@ -144,7 +146,7 @@ def update_config_files_for_gbfs(url_base: str):
                                 fastapi.status.HTTP_500_INTERNAL_SERVER_ERROR, msg
                             )
                         url = urljoin(
-                            url_base, f"/gbfs/{str(gbfsname)}/{name}.json"
+                            url_base, f"/gbfs/{gbfsname!s}/{name}.json"
                         )  # str型に変換
                         feed["url"] = url
 
@@ -154,10 +156,14 @@ async def get_walking_speed(setting: query.Setup):
     if walking_meters_per_minute is None:
         walk_speed = 1.33
         try:
-            with open(env.OPENTRIPPLANNER_VOLUME_DIR / "router-config.json", "r") as fd:
-                config = json.load(fd)
+            config_path = env.OPENTRIPPLANNER_VOLUME_DIR / "router-config.json"
+            config = await asyncio.to_thread(config_path.read_text, encoding="utf-8")
+            config = json.loads(config)
             walk_speed = config.get("routingDefaults", {}).get("walkSpeed", walk_speed)
-        except Exception:  # Default value if the file cannot be read
+        except (
+            OSError,
+            json.JSONDecodeError,
+        ):  # Default value if the file cannot be read
             logger.warning(
                 f"failed to read {env.OPENTRIPPLANNER_VOLUME_DIR}/router-config.json"
             )
@@ -170,7 +176,7 @@ async def deploy_otp_files(
 ):
     """deploy set of configuration files for OpenTripPlanner"""
     for ref in refs:
-        filename, data = await file_table.pop(
+        _filename, data = await file_table.pop(
             session, filename=ref.filename, url=ref.fetch_url
         )
         with zipfile.ZipFile(io.BytesIO(data)) as archive:
@@ -212,7 +218,7 @@ async def setup(request: fastapi.Request, setting: query.Setup):
     network_types = set()
     async with aiohttp.ClientSession() as session:
         await deploy_otp_files(session, setting.otp_config.input_files, diff_years)
-        for service, network in setting.networks.items():
+        for network in setting.networks.values():
             for ref in network.input_files:
                 network_types.add(network.type)
                 if network.type in ["gtfs", "gtfs_flex"]:
@@ -275,7 +281,7 @@ async def setup(request: fastapi.Request, setting: query.Setup):
         "--serve",
         env.OPENTRIPPLANNER_VOLUME_DIR,
     ]
-    proc = subprocess.Popen(command)
+    proc = await asyncio.create_subprocess_exec(*command)
     try:
         await asyncio.wait_for(
             planner_up(interval=5), timeout=env.OPENTRIPPLANNER_STARTUP_TIMEOUT
@@ -289,7 +295,7 @@ async def setup(request: fastapi.Request, setting: query.Setup):
 async def planner_up(interval: float):
     while not await planner.health():
         await asyncio.sleep(interval)
-        rc = proc.poll()
+        rc = proc.returncode
         if rc is not None:
             msg = f"failed to start OpenTripPlanner: returncode={rc}"
             raise fastapi.HTTPException(fastapi.status.HTTP_408_REQUEST_TIMEOUT, msg)
@@ -307,7 +313,7 @@ async def plan(
     org: query.LocationSetting,
     dst: query.LocationSetting,
     dept: float,
-    arrv: typing.Optional[float] = None,
+    arrv: float | None = None,
 ):
     org = Location(id_=org.locationId, lat=org.lat, lng=org.lng)
     dst = Location(id_=dst.locationId, lat=dst.lat, lng=dst.lng)
@@ -317,24 +323,26 @@ async def plan(
 
 @app.get("/graphiql")
 async def graphiql():
-    async with aiohttp.ClientSession() as session:
-        async with session.get(
-            f"http://localhost:{env.OPENTRIPPLANNER_PORT}/graphiql"
-        ) as resp:
-            return fastapi.Response(
-                content=await resp.read(),
-                status_code=resp.status,
-                headers=dict(resp.headers),
-            )
+    async with (
+        aiohttp.ClientSession() as session,
+        session.get(f"http://localhost:{env.OPENTRIPPLANNER_PORT}/graphiql") as resp,
+    ):
+        return fastapi.Response(
+            content=await resp.read(),
+            status_code=resp.status,
+            headers=dict(resp.headers),
+        )
 
 
 @app.post("/otp/routers/default/index/graphql")
 async def graphql(request: fastapi.Request):
-    async with aiohttp.ClientSession() as session:
-        async with session.post(
+    async with (
+        aiohttp.ClientSession() as session,
+        session.post(
             f"http://localhost:{env.OPENTRIPPLANNER_PORT}/otp/routers/default/index/graphql",
             json=await request.json(),
-        ) as resp:
-            return fastapi.responses.JSONResponse(
-                content=await resp.json(), status_code=resp.status
-            )
+        ) as resp,
+    ):
+        return fastapi.responses.JSONResponse(
+            content=await resp.json(), status_code=resp.status
+        )

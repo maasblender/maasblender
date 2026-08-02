@@ -1,25 +1,25 @@
 # SPDX-FileCopyrightText: 2022 TOYOTA MOTOR CORPORATION and MaaS Blender Contributors
 # SPDX-License-Identifier: Apache-2.0
+import dataclasses
 import itertools
 import typing
-import dataclasses
-from datetime import date, timedelta, datetime, time
+from datetime import date, datetime, time, timedelta
 
 from core import (
-    Trip,
+    AbstractStopTime,
+    AbstractStopTimeWithDateTime,
+    DeviatedStopTimeWithDateTime,
+    Path,
     Route,
     Service,
-    StopTime,
     Stop,
-    StopTimeWithDateTime,
-    Path,
-    TripLocation,
-    DeviatedStopTimeWithDateTime,
-    TemporaryStop,
-    User,
-    AbstractStopTime,
     StopLike,
-    AbstractStopTimeWithDateTime,
+    StopTime,
+    StopTimeWithDateTime,
+    TemporaryStop,
+    Trip,
+    TripLocation,
+    User,
 )
 
 T = typing.TypeVar("T")
@@ -34,7 +34,7 @@ def _triplewise(it: typing.Iterable[T]):
 
 
 def _find_stop(
-    stop_times_with: typing.List[AbstractStopTime], stop: Stop, at_date: date
+    stop_times_with: list[AbstractStopTime], stop: Stop, at_date: date
 ) -> typing.Iterator[StopTimeWithDateTime]:
     for stop_time in stop_times_with:
         match stop_time:
@@ -44,7 +44,7 @@ def _find_stop(
 
 
 def _find_location(
-    stop_times_with: typing.List[AbstractStopTime], loc: TripLocation, at_date: date
+    stop_times_with: list[AbstractStopTime], loc: TripLocation, at_date: date
 ) -> typing.Iterator[tuple[StopTimeWithDateTime, StopTimeWithDateTime]]:
     for loc1, loc2, loc3 in _triplewise(stop_times_with):
         match loc2:
@@ -63,8 +63,8 @@ def _find_location(
 
 
 def _find_org(
-    stop_times_with: typing.List[AbstractStopTime], org: StopLike, at: date
-) -> typing.Iterator[typing.Tuple[StopTimeWithDateTime, TemporaryStop | None]]:
+    stop_times_with: list[AbstractStopTime], org: StopLike, at: date
+) -> typing.Iterator[tuple[StopTimeWithDateTime, TemporaryStop | None]]:
     match org:
         case Stop() as p:
             for stop in _find_stop(stop_times_with, p, at):
@@ -77,8 +77,8 @@ def _find_org(
 
 
 def _find_dst(
-    stop_times_with: typing.List[AbstractStopTime], dst: StopLike, at: date
-) -> typing.Iterator[typing.Tuple[TemporaryStop | None, StopTimeWithDateTime]]:
+    stop_times_with: list[AbstractStopTime], dst: StopLike, at: date
+) -> typing.Iterator[tuple[TemporaryStop | None, StopTimeWithDateTime]]:
     match dst:
         case Stop() as p:
             for stop in _find_stop(stop_times_with, p, at):
@@ -91,7 +91,7 @@ def _find_dst(
 
 
 def _get_paths(
-    stop_times_with: typing.List[AbstractStopTime],
+    stop_times_with: list[AbstractStopTime],
     org: StopLike,
     dst: StopLike,
     at: date,
@@ -112,16 +112,19 @@ def get_deviated_stops(
     departure: timedelta,
     arrival: timedelta,
     at_date: date,
-    users: typing.Dict[str, User],
-) -> typing.List[DeviatedStopTimeWithDateTime]:
-    tstops: typing.List[TemporaryStop] = []
+    users: dict[str, User],
+) -> list[DeviatedStopTimeWithDateTime]:
+    tstops: list[TemporaryStop] = []
     for user in users.values():
-        if tstop := user.path.pick_up_stop:  # if pick up on deviated route
-            if tstop.location.location_id == location_id:
-                tstops.append(tstop)
-        if tstop := user.path.drop_off_stop:  # if drop off on deviated route
-            if tstop.location.location_id == location_id:
-                tstops.append(tstop)
+        if (
+            tstop := user.path.pick_up_stop
+        ) and tstop.location.location_id == location_id:  # if pick up on deviated route
+            tstops.append(tstop)
+        if (
+            (tstop := user.path.drop_off_stop)
+            and tstop.location.location_id == location_id
+        ):  # if drop off on deviated route
+            tstops.append(tstop)
     if not tstops:
         return []
     dt_initial = datetime.combine(at_date, time()) + departure
@@ -139,7 +142,7 @@ class SingleTrip(Trip):
 
     route: Route
     service: Service
-    stop_times_with: typing.List[AbstractStopTime]
+    stop_times_with: list[AbstractStopTime]
     block_id: str = ""
 
     def __post_init__(self):
@@ -148,7 +151,7 @@ class SingleTrip(Trip):
         assert isinstance(self.stop_times_with[-1], StopTime)
 
     @property
-    def stop_times(self) -> typing.List[StopTime]:
+    def stop_times(self) -> list[StopTime]:
         return [
             stop_time
             for stop_time in self.stop_times_with
@@ -156,7 +159,7 @@ class SingleTrip(Trip):
         ]
 
     @property
-    def locations(self) -> typing.List[TripLocation]:
+    def locations(self) -> list[TripLocation]:
         return [
             stop_time
             for stop_time in self.stop_times_with
@@ -164,20 +167,20 @@ class SingleTrip(Trip):
         ]
 
     @property
-    def stops(self) -> typing.List[Stop]:
+    def stops(self) -> list[Stop]:
         return [stop_time.stop for stop_time in self.stop_times]
 
     def is_operation(self, at: date) -> bool:
         return self.service.is_operation(at)
 
-    def stop_times_at(self, at_date: date) -> typing.List[StopTimeWithDateTime]:
+    def stop_times_at(self, at_date: date) -> list[StopTimeWithDateTime]:
         return [
             StopTimeWithDateTime(stop_time=stop_time, reference_date=at_date)
             for stop_time in self.stop_times
         ]
 
     def iter_stop_times_at(
-        self, at_date: date, users: typing.Dict[str, User]
+        self, at_date: date, users: dict[str, User]
     ) -> typing.Iterator[AbstractStopTimeWithDateTime]:
         yield StopTimeWithDateTime(
             stop_time=self.stop_times_with[0], reference_date=at_date
@@ -200,7 +203,7 @@ class SingleTrip(Trip):
         )
 
     def start_time(self, at: date):
-        return list(self.stop_times_at(at))[0].arrival
+        return next(iter(self.stop_times_at(at))).arrival
 
     def end_time(self, at: date):
         return list(self.stop_times_at(at))[-1].departure
@@ -218,11 +221,11 @@ class SingleTrip(Trip):
 class BlockTrip(Trip):
     """Sequence of trips which belong to a block"""
 
-    trips: typing.List[SingleTrip]
+    trips: list[SingleTrip]
 
     def __post_init__(self):
         assert len(self.trips) >= 2
-        assert len(set(trip.block_id for trip in self.trips)) <= 1
+        assert len({trip.block_id for trip in self.trips}) <= 1
         assert self.trips[0].block_id != ""
 
         # The following assertion is generally true for most cases,
@@ -232,7 +235,7 @@ class BlockTrip(Trip):
         )
 
     @property
-    def stop_times(self) -> typing.List[StopTime]:
+    def stop_times(self) -> list[StopTime]:
         return [
             stop_time
             for trip in self.trips
@@ -241,7 +244,7 @@ class BlockTrip(Trip):
         ]
 
     @property
-    def locations(self) -> typing.List[TripLocation]:
+    def locations(self) -> list[TripLocation]:
         return [
             stop_time
             for trip in self.trips
@@ -250,11 +253,11 @@ class BlockTrip(Trip):
         ]
 
     @property
-    def stops(self) -> typing.List[Stop]:
+    def stops(self) -> list[Stop]:
         return [stop_time.stop for trip in self.trips for stop_time in trip.stop_times]
 
     def is_operation(self, at: date) -> bool:
-        return any([trip.service.is_operation(at) for trip in self.trips])
+        return any(trip.service.is_operation(at) for trip in self.trips)
 
     def stop_times_at(self, at: date):
         # Depending on the service configuration, a block trip can be split into multiple trips
@@ -268,7 +271,7 @@ class BlockTrip(Trip):
         ]
 
     def iter_stop_times_at(
-        self, at_date: date, users: typing.Dict[str, User]
+        self, at_date: date, users: dict[str, User]
     ) -> typing.Iterator[AbstractStopTimeWithDateTime]:
         stop_times_with = self.stop_times_with(at_date)
         yield StopTimeWithDateTime(stop_time=stop_times_with[0], reference_date=at_date)
@@ -289,7 +292,7 @@ class BlockTrip(Trip):
             stop_time=stop_times_with[-1], reference_date=at_date
         )
 
-    def stop_times_with(self, at: date) -> typing.List[AbstractStopTime]:
+    def stop_times_with(self, at: date) -> list[AbstractStopTime]:
         return [
             stop_time
             for trip in self.trips
@@ -298,7 +301,7 @@ class BlockTrip(Trip):
         ]
 
     def start_time(self, at: date):
-        return list(self.stop_times_at(at))[0].arrival
+        return next(iter(self.stop_times_at(at))).arrival
 
     def end_time(self, at: date):
         return list(self.stop_times_at(at))[-1].departure

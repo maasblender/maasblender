@@ -1,21 +1,22 @@
 # SPDX-FileCopyrightText: 2022 TOYOTA MOTOR CORPORATION
 # SPDX-License-Identifier: Apache-2.0
 import datetime
-import typing
 import unittest
 
 from core import Location, Path, Trip, WalkingNetwork
-from gtfs.object import Trip as gtfs_Trip, StopTime, Service
-from gtfs.network import Network as GtfsNetwork
 from gbfs.network import Network as GbfsNetwork
-from gtfs_flex.object import (
-    Trip as flex_Trip,
-    Stop as flex_Stop,
-    StopTime as flex_StopTime,
-    Service as flex_Service,
-    Group as flex_Group,
-)
+from gtfs.network import Network as GtfsNetwork
+from gtfs.object import Service, StopTime
+from gtfs.object import Trip as gtfs_Trip
 from gtfs_flex.network import Network as GtfsFlexNetwork
+from gtfs_flex.object import Group as flex_Group
+from gtfs_flex.object import Service as flex_Service
+from gtfs_flex.object import Stop as flex_Stop
+from gtfs_flex.object import StopTime as flex_StopTime
+from gtfs_flex.object import Trip as flex_Trip
+
+BASE_DATE = datetime.date(2022, 1, 1)
+
 
 # 以下の地名、座標などは以下の著作物を改変して利用しています。
 # まいどはやバスGTFS-JP、富山市、クリエイティブ・コモンズ・ライセンス　表示4.0国際
@@ -172,12 +173,10 @@ class GtfsTestCase(unittest.TestCase):
         self.network = GtfsNetwork(
             service=self.service_name,
             walking_meters_per_minute=self.walking_velocity,
-            start_time=datetime.datetime.combine(
-                datetime.date.today(), datetime.time()
-            ),
+            start_time=datetime.datetime.combine(BASE_DATE, datetime.time()),
         )
         self.stations = gtfs_stations
-        schedule: typing.List[typing.Tuple[Location, float]] = [
+        schedule: list[tuple[Location, float]] = [
             (self.stations["3_1"], 543),
             (self.stations["7_1"], 548),
             (self.stations["11_1"], 558),
@@ -191,8 +190,8 @@ class GtfsTestCase(unittest.TestCase):
 
         trip = gtfs_Trip(
             service=Service(
-                start_date=datetime.date.today(),
-                end_date=datetime.date.today() + datetime.timedelta(days=1),
+                start_date=BASE_DATE,
+                end_date=BASE_DATE + datetime.timedelta(days=1),
                 monday=True,
                 tuesday=True,
                 wednesday=True,
@@ -261,17 +260,15 @@ class OndemandBusTestCase(unittest.TestCase):
             walking_meters_per_minute=self.walking_velocity,
             mobility_meters_per_minute=self.mobility_velocity,
             expected_waiting_time=self.expected_waiting_time,
-            start_time=datetime.datetime.combine(
-                datetime.date.today(), datetime.time()
-            ),
+            start_time=datetime.datetime.combine(BASE_DATE, datetime.time()),
         )
         self.stations = gtfs_flex_stations
         self.network.setup(
             [
                 flex_Trip(
                     service=flex_Service(
-                        start_date=datetime.date.today(),
-                        end_date=datetime.date.today() + datetime.timedelta(days=1),
+                        start_date=BASE_DATE,
+                        end_date=BASE_DATE + datetime.timedelta(days=1),
                         monday=True,
                         tuesday=True,
                         wednesday=True,

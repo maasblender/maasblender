@@ -3,7 +3,7 @@
 import unittest
 
 from generator import DemandGenerator
-from jschema.query import LocationSetting, Setup, SenDemandsSetting
+from jschema.query import LocationSetting, SenDemandsSetting, Setup
 from jschema.response import DemandEvent
 
 org1 = LocationSetting(locationId="Org", lat=154.1, lng=27.1)

@@ -5,10 +5,9 @@ import logging
 import random
 import typing
 
-import simpy
-
 import jschema.query
-from core import Location, DemandEvent, DemandInfo
+import simpy
+from core import DemandEvent, DemandInfo, Location
 
 logger = logging.getLogger(__name__)
 

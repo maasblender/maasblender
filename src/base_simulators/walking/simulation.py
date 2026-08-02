@@ -4,10 +4,9 @@ import logging
 from dataclasses import dataclass
 
 import simpy
-from geopy.distance import geodesic
-
 from core import Location
-from event import ReservedEvent, DepartedEvent, ArrivedEvent
+from event import ArrivedEvent, DepartedEvent, ReservedEvent
+from geopy.distance import geodesic
 
 logger = logging.getLogger(__name__)
 MIN_DURATION = 0.0

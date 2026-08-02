@@ -3,12 +3,12 @@
 import dataclasses
 import json
 
+from event import DemandEvent, EventQueue
+from jschema.query import EvaluationTiming
+from mblib.io.result import ResultWriter
 from simpy import Environment
 
-from mblib.io.result import ResultWriter
-from planner import Location, Route, Planner, ReservableChecker
-from event import EventQueue, DemandEvent
-from jschema.query import EvaluationTiming
+from planner import Location, Planner, ReservableChecker, Route
 
 
 def near_locations(loc1: Location, loc2: Location, *, delta: float):

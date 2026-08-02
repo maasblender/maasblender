@@ -2,8 +2,8 @@
 # SPDX-License-Identifier: Apache-2.0
 import dataclasses
 import typing
-from enum import Enum
 from datetime import date, datetime, timedelta
+from enum import Enum
 
 
 class EventType(str, Enum):
@@ -51,8 +51,8 @@ class Service:
         self._start_day = start_date
         self._end_day = end_date
         self._weekday = [monday, tuesday, wednesday, thursday, friday, saturday, sunday]
-        self._added_exceptions: typing.List[date] = []
-        self._removed_exceptions: typing.List[date] = []
+        self._added_exceptions: list[date] = []
+        self._removed_exceptions: list[date] = []
 
     def __repr__(self):
         weekday = "".join(str(int(e)) for e in self._weekday)

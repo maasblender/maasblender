@@ -6,17 +6,20 @@ import dataclasses
 import itertools
 import logging
 
-from core import Runner, User, Task, Location, Route
+from core import Location, Route, Runner, Task, User
+from event import (
+    ArrivedEvent,
+    DepartedEvent,
+    DepartEvent,
+    EventIdentifier,
+    ReservedEvent,
+    ReserveEvent,
+)
 from event import (
     Manager as EventManager,
-    EventIdentifier,
-    ReserveEvent,
-    ReservedEvent,
-    DepartEvent,
-    DepartedEvent,
-    ArrivedEvent,
 )
 from jschema.query import SortType, UserType
+
 from planner import Planner
 
 logger = logging.getLogger(__name__)
@@ -31,7 +34,7 @@ class Trip(Task):
         service: str,
         dept: float,
         arrv: float | None = None,
-        fail: list[Task] = None,
+        fail: list[Task] | None = None,
     ):
         self.event_manager = manager
         self.service = service
@@ -153,7 +156,7 @@ class FavoriteRouteFilter(RouteFilter):
             return True
         if self.favorite_service == {"walking"}:
             return False
-        services = set(t.service for t in plan.trips)
+        services = {t.service for t in plan.trips}
         return bool(self.favorite_service & services)
 
     def _check_walking_limit(self, plan: Route) -> bool:
@@ -190,7 +193,9 @@ class Reserve(Task):
     (pre)reserve mobility before trip
     """
 
-    def __init__(self, manager: EventManager, route: Route, fail: list[Task] = None):
+    def __init__(
+        self, manager: EventManager, route: Route, fail: list[Task] | None = None
+    ):
         assert len(route.trips) == 3
         self.event_manager = manager
         self.route = route
@@ -354,7 +359,7 @@ class UserManager(Runner):
     def __init__(
         self,
         user_params: dict[str, UserType | None],
-        confirmed_services: list[str] = None,
+        confirmed_services: list[str] | None = None,
     ):
         super().__init__()
         self._event_manager = EventManager(env=self.env)

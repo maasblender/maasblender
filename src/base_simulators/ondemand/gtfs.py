@@ -1,14 +1,13 @@
 # SPDX-FileCopyrightText: 2022 TOYOTA MOTOR CORPORATION and MaaS Blender Contributors
 # SPDX-License-Identifier: Apache-2.0
-import typing
-import datetime
 import csv
+import datetime
 import io
-import zipfile
 import re
+import typing
+import zipfile
 
-from core import Stop, Group, StopTime, Service, Trip
-
+from core import Group, Service, Stop, StopTime, Trip
 
 p = re.compile(r"(\d\d?):(\d\d?):(\d\d?)")
 
@@ -23,16 +22,16 @@ def str_time(time: str):
 
 
 def str_date(time: str):
-    return datetime.datetime.strptime(time, "%Y%m%d").date()
+    return datetime.date.fromisoformat(f"{time[:4]}-{time[4:6]}-{time[6:8]}")
 
 
 class GtfsFlexFilesReader:
     def __init__(self):
-        self.stops: typing.Dict[str, Stop] = {}
-        self.location_groups: typing.Dict[str, Group] = {}
-        self._stop_times: typing.Dict[str, StopTime] = {}
-        self._services: typing.Dict[str, Service] = {}
-        self.trips: typing.Dict[str, Trip] = {}
+        self.stops: dict[str, Stop] = {}
+        self.location_groups: dict[str, Group] = {}
+        self._stop_times: dict[str, StopTime] = {}
+        self._services: dict[str, Service] = {}
+        self.trips: dict[str, Trip] = {}
 
     def read(self, archive: zipfile.ZipFile):
         for filename, parse in {

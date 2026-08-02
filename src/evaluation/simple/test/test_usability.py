@@ -5,11 +5,12 @@ import pathlib
 import unittest
 import unittest.mock
 
+from core import Location
 from jschema.query import EvaluationTiming
 from mblib.io.result import FileResultWriter
-from core import Location
-from planner import Route, Trip
 from usability import UsabilityEvaluator
+
+from planner import Route, Trip
 
 logger = logging.getLogger(__name__)
 

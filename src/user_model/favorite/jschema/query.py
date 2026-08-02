@@ -1,10 +1,10 @@
 # SPDX-FileCopyrightText: 2023 TOYOTA MOTOR CORPORATION and MaaS Blender Contributors
 # SPDX-License-Identifier: Apache-2.0
 import math
-
-from pydantic import BaseModel, AnyHttpUrl, model_validator
 from enum import Enum
-from mblib.jschema.events import DemandEvent, ReservedEvent, DepartedEvent, ArrivedEvent
+
+from mblib.jschema.events import ArrivedEvent, DemandEvent, DepartedEvent, ReservedEvent
+from pydantic import AnyHttpUrl, BaseModel, model_validator
 
 
 class PlannerSetting(BaseModel):

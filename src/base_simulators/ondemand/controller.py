@@ -1,21 +1,21 @@
 # SPDX-FileCopyrightText: 2022 TOYOTA MOTOR CORPORATION and MaaS Blender Contributors
 # SPDX-License-Identifier: Apache-2.0
 import datetime
-import json
 import io
+import json
 import logging
 import zipfile
+from typing import Annotated
 
 import aiohttp
 import fastapi
-
 from core import Network
 from gtfs import GtfsFlexFilesReader
 from jschema import query, response
 from mblib.io import httputil
 from mblib.io.log import init_logger
-from mblib.jschema import spec, events
-from simulation import Simulation, CarSetting
+from mblib.jschema import events, spec
+from simulation import CarSetting, Simulation
 
 logger = logging.getLogger(__name__)
 app = fastapi.FastAPI(
@@ -63,7 +63,7 @@ def get_specification():
 
 
 @app.post("/upload", response_model=response.Message)
-def upload(upload_file: fastapi.UploadFile = fastapi.File(...)):
+def upload(upload_file: Annotated[fastapi.UploadFile, fastapi.File(...)]):
     try:
         file_table.put(upload_file)
     finally:
@@ -75,7 +75,7 @@ def upload(upload_file: fastapi.UploadFile = fastapi.File(...)):
 async def setup(settings: query.Setup):
     async with aiohttp.ClientSession() as session:
         ref = settings.input_files[0]
-        filename, data = await file_table.pop(
+        _filename, data = await file_table.pop(
             session, filename=ref.filename, url=ref.fetch_url
         )
         with zipfile.ZipFile(io.BytesIO(data)) as archive:
@@ -127,7 +127,9 @@ async def setup(settings: query.Setup):
 
     global sim
     sim = Simulation(
-        start_time=datetime.datetime.strptime(settings.reference_time, "%Y%m%d"),
+        start_time=datetime.datetime.strptime(
+            settings.reference_time, "%Y%m%d"
+        ).replace(tzinfo=datetime.timezone.utc),
         network=network,
         trips=trips,
         enable_ortools=settings.enable_ortools,
