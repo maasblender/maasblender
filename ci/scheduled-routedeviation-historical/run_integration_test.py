@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Integration test for the scheduled + route-deviation + historical scenario.
 
@@ -16,7 +15,7 @@ import shutil
 import sys
 import time
 from dataclasses import dataclass
-from typing import Optional, Any, List
+from typing import Any
 
 import httpx
 
@@ -40,7 +39,7 @@ def request_with_retry(
     method: str,
     url: str,
     *,
-    timeout: Optional[httpx.Timeout] = None,
+    timeout: httpx.Timeout | None = None,
     attempts: int = RETRY_ATTEMPTS,
     **kwargs,
 ) -> httpx.Response:
@@ -129,7 +128,7 @@ def assert_message(data: dict[str, Any], expected_message: str) -> None:
 def post(
     client: httpx.Client,
     url: str,
-    params: Optional[dict] = None,
+    params: dict | None = None,
     **kwargs,
 ) -> dict[str, Any]:
     return request_with_retry(client, "POST", url, params=params, **kwargs).json()
@@ -197,7 +196,7 @@ def get_user_trips(events: list[dict[str, Any]], user_id: str) -> list[Trip]:
 
 
 def assert_departed_at(
-    trips: List[Trip], departed_from: str, at: float, tolerance: float = 1e-6
+    trips: list[Trip], departed_from: str, at: float, tolerance: float = 1e-6
 ) -> None:
     if not trips:
         print(
@@ -217,7 +216,7 @@ def assert_departed_at(
     sys.exit(1)
 
 
-def assert_arrived_at(trips: List[Trip], arrived: str) -> None:
+def assert_arrived_at(trips: list[Trip], arrived: str) -> None:
     if not trips:
         print(f"  [FAIL] no trips found. expected arrival at {arrived}")
         sys.exit(1)
@@ -234,7 +233,7 @@ def assert_arrived_at(trips: List[Trip], arrived: str) -> None:
     sys.exit(1)
 
 
-def assert_used_service(trips: List[Trip], service: str) -> None:
+def assert_used_service(trips: list[Trip], service: str) -> None:
     if any(trip.service == service for trip in trips):
         print(f"  [OK] service used: {service}")
         return

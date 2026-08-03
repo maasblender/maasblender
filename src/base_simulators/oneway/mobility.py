@@ -7,7 +7,6 @@ import typing
 from logging import getLogger
 
 import simpy
-
 from core import Location, Mobility
 
 logger = getLogger(__name__)

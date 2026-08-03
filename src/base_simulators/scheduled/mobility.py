@@ -3,13 +3,13 @@
 from __future__ import annotations
 
 import typing
-from logging import getLogger
-from itertools import chain
 from datetime import datetime, time, timedelta
+from itertools import chain
+from logging import getLogger
 
-from core import Path, Trip, Stop, UserStatus, User, Mobility
+from core import Mobility, Path, Stop, Trip, User, UserStatus
 from environment import Environment
-from event import EventQueue, DepartedEvent, ArrivedEvent, ReservedEvent
+from event import ArrivedEvent, DepartedEvent, EventQueue, ReservedEvent
 
 logger = getLogger(__name__)
 
@@ -27,8 +27,8 @@ class Car(Mobility):
         self.env = env
         self.events = queue
         self._capacity = capacity
-        self._stop: typing.Optional[Stop] = None
-        self.users: typing.Dict[
+        self._stop: Stop | None = None
+        self.users: dict[
             str, User
         ] = {}  # 車両を予約している/停車駅に待機している/車両に乗車している すべての利用者
 
@@ -134,13 +134,13 @@ class Car(Mobility):
                 )
 
     def __str__(self):
-        data = dict(
-            now=self.env.now,
-            mobility_id=self.mobility_id,
-            trip=self._trip,
-            stop=self.stop,
-            users=tuple(self.users.values()),
-        )
+        data = {
+            "now": self.env.now,
+            "mobility_id": self.mobility_id,
+            "trip": self._trip,
+            "stop": self.stop,
+            "users": tuple(self.users.values()),
+        }
         return f"Car({data})"
 
     def reserve(self, user_id: str, demand_id: str, path: Path):
@@ -194,7 +194,7 @@ class CarManager:
     ):
         self.env = env
         self.event_queue = event_queue
-        self.mobilities: typing.Dict[str, Car] = {
+        self.mobilities: dict[str, Car] = {
             setting.mobility_id: Car(
                 env=self.env,
                 queue=self.event_queue,
@@ -215,9 +215,7 @@ class CarManager:
         for car in self.mobilities.values():
             self.env.process(car.run())
 
-    def earliest_mobility(
-        self, org: Stop, dst: Stop, dept: float
-    ) -> typing.Optional[Car]:
+    def earliest_mobility(self, org: Stop, dst: Stop, dept: float) -> Car | None:
         """Return the vehicle that arrives at the destination earliest.
 
         Returns `None` If there is no vehicle available"""
@@ -234,4 +232,4 @@ class CarManager:
         if not len(car_arrivals):
             return None
 
-        return sorted(car_arrivals.items(), key=lambda x: x[1])[0][0]
+        return min(car_arrivals.items(), key=lambda x: x[1])[0]

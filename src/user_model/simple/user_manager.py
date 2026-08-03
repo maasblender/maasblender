@@ -5,17 +5,20 @@ from __future__ import annotations
 import itertools
 import logging
 
-from jschema.query import PreferenceMode
-from core import Runner, User, Task, Location, Route
+from core import Location, Route, Runner, Task, User
+from event import (
+    ArrivedEvent,
+    DepartedEvent,
+    DepartEvent,
+    EventIdentifier,
+    ReservedEvent,
+    ReserveEvent,
+)
 from event import (
     Manager as EventManager,
-    EventIdentifier,
-    ReserveEvent,
-    ReservedEvent,
-    DepartEvent,
-    DepartedEvent,
-    ArrivedEvent,
 )
+from jschema.query import PreferenceMode
+
 from planner import Planner
 
 logger = logging.getLogger(__name__)
@@ -30,7 +33,7 @@ class Trip(Task):
         service: str,
         dept: float,
         arrv: float | None = None,
-        fail: list[Task] = None,
+        fail: list[Task] | None = None,
     ):
         self.event_manager = manager
         self.service = service
@@ -125,7 +128,9 @@ class Reserve(Task):
     (pre)reserve mobility before trip
     """
 
-    def __init__(self, manager: EventManager, route: Route, fail: list[Task] = None):
+    def __init__(
+        self, manager: EventManager, route: Route, fail: list[Task] | None = None
+    ):
         assert len(route.trips) == 3
         self.event_manager = manager
         self.route = route
@@ -302,7 +307,9 @@ class UserManager(Runner):
     confirmed_services: list[str]
 
     def __init__(
-        self, preference_mode: PreferenceMode, confirmed_services: list[str] = None
+        self,
+        preference_mode: PreferenceMode,
+        confirmed_services: list[str] | None = None,
     ):
         super().__init__()
         self._event_manager = EventManager(env=self.env)

@@ -1,14 +1,15 @@
 # SPDX-FileCopyrightText: 2023 TOYOTA MOTOR CORPORATION and MaaS Blender Contributors
 # SPDX-License-Identifier: Apache-2.0
-import unittest
 import logging
-from datetime import datetime, date, time, timedelta
+import unittest
+from datetime import date, datetime, time, timedelta
 
+from core import EventType, Service, Stop, StopTime
 from simulation import Simulation
-from core import EventType, Stop, StopTime, Service
-from trip import SingleTrip, BlockTrip
+from trip import BlockTrip, SingleTrip
 
 logger = logging.getLogger(__name__)
+BASE_DATE = date(2022, 1, 1)
 
 
 def run(simulation: Simulation, until: float):
@@ -44,14 +45,14 @@ class SingleTripTestCase(unittest.TestCase):
         self.mobility_id = "mobility"
 
         self.simulation = Simulation(
-            start_time=datetime.combine(date.today(), time()),
+            start_time=datetime.combine(BASE_DATE, time()),
             capacity=20,
             trips={
                 self.mobility_id: SingleTrip(
                     route=...,
                     service=Service(
-                        start_date=date.today(),
-                        end_date=date.today() + timedelta(days=1),
+                        start_date=BASE_DATE,
+                        end_date=BASE_DATE + timedelta(days=1),
                         monday=True,
                         tuesday=True,
                         wednesday=True,

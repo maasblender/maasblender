@@ -1,12 +1,12 @@
 # SPDX-FileCopyrightText: 2023 TOYOTA MOTOR CORPORATION and MaaS Blender Contributors
 # SPDX-License-Identifier: Apache-2.0
-import unittest
 import logging
+import unittest
 
-from simulation import Simulation
 from event import EventType
 from mobility import ScooterParameter
 from operation.reduce_fluctuations import OperatorParameter
+from simulation import Simulation
 
 logger = logging.getLogger(__name__)
 

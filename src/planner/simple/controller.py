@@ -3,12 +3,11 @@
 import datetime
 import io
 import logging
-import typing
 import zipfile
+from typing import Annotated
 
 import aiohttp
 import fastapi
-
 from core import Location, MobilityNetwork, WalkingNetwork
 from gbfs.network import Network as GbfsNetwork
 from gbfs.reader import FilesReader as GbfsFiles
@@ -19,7 +18,7 @@ from gtfs_flex.reader import FilesReader as GtfsFlexFiles
 from jschema import query, response
 from mblib.io import httputil
 from mblib.io.log import init_logger
-from route_planner import Planner, DirectPathPlanner
+from route_planner import DirectPathPlanner, Planner
 
 logger = logging.getLogger(__name__)
 app = fastapi.FastAPI(
@@ -50,7 +49,7 @@ planner: Planner | None = None
 
 
 @app.post("/upload")
-async def upload(upload_file: fastapi.UploadFile = fastapi.File(...)):
+async def upload(upload_file: Annotated[fastapi.UploadFile, fastapi.File(...)]):
     try:
         file_table.put(upload_file)
     finally:
@@ -60,17 +59,19 @@ async def upload(upload_file: fastapi.UploadFile = fastapi.File(...)):
 
 @app.post("/setup", response_model=response.Message)
 async def setup(settings: query.Setup):
-    networks: typing.List[MobilityNetwork] = [
+    networks: list[MobilityNetwork] = [
         WalkingNetwork(
             "walking", walking_meters_per_minute=settings.walking_meters_per_minute
         )
     ]
-    start_time = datetime.datetime.strptime(settings.reference_time, "%Y%m%d")
+    start_time = datetime.datetime.strptime(settings.reference_time, "%Y%m%d").replace(
+        tzinfo=datetime.timezone.utc
+    )
     async with aiohttp.ClientSession() as session:
         for name, setting in settings.networks.items():
             if setting.type == "gbfs":
                 ref = setting.input_files[0]
-                filename, data = await file_table.pop(
+                _, data = await file_table.pop(
                     session, filename=ref.filename, url=ref.fetch_url
                 )
                 with zipfile.ZipFile(io.BytesIO(data)) as archive:
@@ -88,7 +89,7 @@ async def setup(settings: query.Setup):
                 network.setup(gbfs_files.stations.values())
             elif setting.type == "gtfs":
                 ref = setting.input_files[0]
-                filename, data = await file_table.pop(
+                _, data = await file_table.pop(
                     session, filename=ref.filename, url=ref.fetch_url
                 )
                 with zipfile.ZipFile(io.BytesIO(data)) as archive:
@@ -107,7 +108,7 @@ async def setup(settings: query.Setup):
                 network.setup(gtfs_files.trips.values())
             elif setting.type == "gtfs_flex":
                 ref = setting.input_files[0]
-                filename, data = await file_table.pop(
+                _, data = await file_table.pop(
                     session, filename=ref.filename, url=ref.fetch_url
                 )
                 with zipfile.ZipFile(io.BytesIO(data)) as archive:
@@ -150,7 +151,7 @@ async def plan(
     org: query.LocationSetting,
     dst: query.LocationSetting,
     dept: float,
-    arrv: typing.Optional[float] = None,
+    arrv: float | None = None,
 ):
     if arrv is not None:
         raise fastapi.HTTPException(

@@ -3,7 +3,6 @@ import unittest
 
 import pydantic
 import yaml
-
 from controller import SetupParser
 from jschema import query
 

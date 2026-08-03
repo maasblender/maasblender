@@ -8,15 +8,12 @@ import pathlib
 import typing
 
 import fastapi
-
-
-from mblib.io.log import init_logger
-from mblib.io.result import FileResultWriter, HTTPResultWriter, ResultWriter
 from engine import RunnerEngine
 from jschema import query, response
-from runner import Runner
-from route_planner import Planner, Path
-from runner import HttpRunner
+from mblib.io.log import init_logger
+from mblib.io.result import FileResultWriter, HTTPResultWriter, ResultWriter
+from route_planner import Path, Planner
+from runner import HttpRunner, Runner
 from validation import EventValidator
 
 logger = logging.getLogger(__name__)
@@ -118,13 +115,13 @@ class Manager:
     def add_planner(self, name: str, planner: Planner):
         self.planners[name] = planner
 
-    def run(self, until: int | float | None, background_tasks: fastapi.BackgroundTasks):
+    def run(self, until: float | None, background_tasks: fastapi.BackgroundTasks):
         self.running = True
         background_tasks.add_task(self._run, until)
         # asyncio.create_task(_run(until))
         return {"message": "successfully run."}
 
-    async def _run(self, until: int | float):
+    async def _run(self, until: float):
         now = 0.0
         while now <= until and self.success:
             try:
@@ -134,7 +131,7 @@ class Manager:
                 logger.error("error on running: %s", repr(ex))
             except Exception as ex:
                 self.error = ex
-                logger.exception("error on running: %s", repr(ex))
+                logger.exception("error on running")
         self.running = False
 
     async def finish(self):
@@ -214,7 +211,7 @@ async def step():
 
 
 @app.post("/run", response_model=response.Message)
-def run(until: int | float | None, background_tasks: fastapi.BackgroundTasks):
+def run(until: float | None, background_tasks: fastapi.BackgroundTasks):
     manager.run(until, background_tasks)
     return {"message": "successfully run."}
 

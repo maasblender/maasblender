@@ -1,14 +1,12 @@
 # SPDX-FileCopyrightText: 2023 TOYOTA MOTOR CORPORATION and MaaS Blender Contributors
 # SPDX-License-Identifier: Apache-2.0
+import itertools
 import logging
 import typing
-import itertools
-
 from dataclasses import dataclass
 
 import simpy
-
-from core import Location, DemandEvent, DemandInfo
+from core import DemandEvent, DemandInfo, Location
 from jschema.query import HistoricalDemandSetting
 
 logger = logging.getLogger(__name__)

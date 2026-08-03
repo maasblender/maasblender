@@ -100,7 +100,7 @@ class FileManager:
         session: aiohttp.ClientSession,
         *,
         url: str | pydantic.AnyHttpUrl = None,
-        filename: str = None,
+        filename: str | None = None,
     ) -> tuple[str, bytes]:
         if url:
             if not isinstance(url, str):

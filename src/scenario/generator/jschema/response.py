@@ -2,10 +2,9 @@
 # SPDX-License-Identifier: Apache-2.0
 import typing
 
-from pydantic import BaseModel
-
 from mblib.jschema import response
 from mblib.jschema.events import DemandEvent
+from pydantic import BaseModel
 
 Message = response.Message
 Peek = response.Peek

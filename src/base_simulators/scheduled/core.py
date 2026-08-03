@@ -1,9 +1,9 @@
 # SPDX-FileCopyrightText: 2022 TOYOTA MOTOR CORPORATION and MaaS Blender Contributors
 # SPDX-License-Identifier: Apache-2.0
-import typing
 import dataclasses
+import typing
+from datetime import date, datetime, time, timedelta
 from enum import Enum, auto
-from datetime import date, time, datetime, timedelta
 
 
 class EventType(str, Enum):
@@ -55,7 +55,10 @@ class StopTime:
     departure: timedelta
 
     def __init__(
-        self, stop: Stop, arrival: timedelta = None, departure: timedelta = None
+        self,
+        stop: Stop,
+        arrival: timedelta | None = None,
+        departure: timedelta | None = None,
     ):
         assert arrival or departure
         self.stop = stop
@@ -91,8 +94,8 @@ class Service:
     _start_day: date
     _end_day: date
     _weekday: tuple[bool, bool, bool, bool, bool, bool, bool]
-    _added_exceptions: typing.List[date]
-    _removed_exceptions: typing.List[date]
+    _added_exceptions: list[date]
+    _removed_exceptions: list[date]
 
     def __init__(
         self,
@@ -171,13 +174,13 @@ class Trip:
     """Sequence of two or more stops during a specific time period using a vehicle"""
 
     @property
-    def stops(self) -> typing.List[Stop]:
+    def stops(self) -> list[Stop]:
         raise NotImplementedError()
 
     def is_operation(self, at_date: date) -> bool:
         raise NotImplementedError()
 
-    def stop_times_at(self, at_date: date) -> typing.List[StopTimeWithDateTime]:
+    def stop_times_at(self, at_date: date) -> list[StopTimeWithDateTime]:
         raise NotImplementedError()
 
     def start_time(self, at: date) -> datetime:
@@ -227,7 +230,7 @@ class Mobility:
     def stop(self) -> Stop:
         raise NotImplementedError()
 
-    def trip(self, at: date = None):
+    def trip(self, at: date | None = None):
         if at is None:
             at = self.operation_date
 
@@ -249,19 +252,16 @@ class Mobility:
         today_date = date_time.date()
 
         before_date = today_date - timedelta(days=1)
-        if trip := self.trip(before_date):
+        if (trip := self.trip(before_date)) and date_time < trip.end_time(before_date):
             # If the previous day's operation has not been completed, returns the previous day's date.
-            if date_time < trip.end_time(before_date):
-                return before_date
+            return before_date
 
-        if trip := self.trip(today_date):
+        if (trip := self.trip(today_date)) and trip.end_time(today_date) <= date_time:
             # If today's operation has been completed, returns the next day's date.
-            if trip.end_time(today_date) <= date_time:
-                return date_time.date() + timedelta(days=1)
+            return date_time.date() + timedelta(days=1)
 
         return today_date
 
     def paths(self, org: Stop, dst: Stop, at: date):
         if trip := self.trip(at):
-            for path in trip.paths(org, dst, at):
-                yield path
+            yield from trip.paths(org, dst, at)

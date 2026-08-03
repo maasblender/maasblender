@@ -5,7 +5,6 @@ import logging
 import typing
 
 from jschema.event import Event
-
 from mblib.io.result import ResultWriter
 from mblib.jschema.spec import SpecificationResponse
 from validation import EventValidator
@@ -70,7 +69,7 @@ class RunnerEngine:
             await asyncio.gather(*[runner.peek() for runner in self._runners.values()])
         )
 
-    async def step(self, until: int | float = None) -> int | float:
+    async def step(self, until: float | None = None) -> int | float:
         peeks = await asyncio.gather(
             *[runner.peek() for runner in self._runners.values()]
         )

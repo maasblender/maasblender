@@ -4,15 +4,15 @@ import datetime
 import io
 import logging
 import zipfile
+from typing import Annotated
 
 import aiohttp
 import fastapi
-
 import gtfs
 from jschema import query, response
 from mblib.io import httputil
 from mblib.io.log import init_logger
-from mblib.jschema import spec, events
+from mblib.jschema import events, spec
 from simulation import Simulation
 
 logger = logging.getLogger(__name__)
@@ -61,7 +61,7 @@ def get_specification():
 
 
 @app.post("/upload")
-def upload(upload_file: fastapi.UploadFile = fastapi.File(...)):
+def upload(upload_file: Annotated[fastapi.UploadFile, fastapi.File(...)]):
     try:
         file_table.put(upload_file)
     finally:
@@ -73,7 +73,7 @@ def upload(upload_file: fastapi.UploadFile = fastapi.File(...)):
 async def setup(settings: query.Setup):
     async with aiohttp.ClientSession() as session:
         ref = settings.input_files[0]
-        filename, data = await file_table.pop(
+        _filename, data = await file_table.pop(
             session, filename=ref.filename, url=ref.fetch_url
         )
     with zipfile.ZipFile(io.BytesIO(data)) as archive:

@@ -4,7 +4,7 @@ import dataclasses
 import typing
 from functools import cached_property
 
-from pydantic import BaseModel, Field, AnyHttpUrl
+from pydantic import AnyHttpUrl, BaseModel, Field
 from pydantic.json_schema import JsonSchemaValue
 
 TxRx = typing.Literal["Tx", "Rx"]
@@ -32,7 +32,7 @@ class EventDefinition(BaseModel):
     )
 
     @staticmethod
-    def inspect(dir_: TxRx, event_class: typing.Type[BaseModel]):
+    def inspect(dir_: TxRx, event_class: type[BaseModel]):
         if hasattr(event_class, "feature"):
             feature = event_class.feature
         else:
@@ -55,9 +55,7 @@ class SpecificationResponse(BaseModel):
 
 
 # class type of StepEvent or TriggeredEvent
-EventClassType = (
-    typing.Union[typing.Type[BaseModel], ...] | typing.Type[BaseModel] | None
-)
+EventClassType = typing.Any
 
 
 @dataclasses.dataclass(frozen=True)
@@ -66,9 +64,7 @@ class EventSpecificationBuilder:
     step: dataclasses.InitVar[EventClassType | None] = None
     triggered: dataclasses.InitVar[EventClassType | None] = None
 
-    def __post_init__(
-        self, step: EventClassType = None, triggered: EventClassType = None
-    ):
+    def __post_init__(self, step: EventClassType, triggered: EventClassType):
         # set event specification of step API response
         self._set_events("Tx", step)
         # set event specification of triggered API request
@@ -93,8 +89,8 @@ class EventSpecificationBuilder:
         self,
         event_type: typing.Any,
         *,
-        declared: list[str] = None,
-        required: list[str] = None,
+        declared: list[str] | None = None,
+        required: list[str] | None = None,
     ) -> None:
         """set feature definition for step or triggered event specification"""
         feature = FeatureDefinition(declared=declared, required=required)

@@ -4,7 +4,6 @@ import logging
 import math
 
 import fastapi
-
 from commuter import CommuterScenario
 from jschema.query import Setup
 from jschema.response import Message, Peek, Step, StepEvent, User

@@ -1,14 +1,16 @@
 # SPDX-FileCopyrightText: 2022 TOYOTA MOTOR CORPORATION and MaaS Blender Contributors
 # SPDX-License-Identifier: Apache-2.0
-import typing
-import logging
 import datetime
+import itertools
+import logging
+import typing
 
 import networkx as nx
+from core import Location, MobilityNetwork, Path, Trip
 from networkx.exception import NetworkXNoPath
 
-from core import Location, Path, Trip, MobilityNetwork
-from gtfs.object import Trip as gtfs_Trip, StopTimeWithDatetime as StopTime
+from gtfs.object import StopTimeWithDatetime as StopTime
+from gtfs.object import Trip as gtfs_Trip
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +22,7 @@ class SchedulePoint(typing.NamedTuple):
 
 
 def add_nodes(graph: nx.DiGraph, stop_times: typing.Sequence[StopTime]):
-    for source, target in zip(stop_times, stop_times[1:]):
+    for source, target in itertools.pairwise(stop_times):
         # The "org" side is interested in departure times.
         graph.add_edge(
             u_of_edge=SchedulePoint(source.stop, source.departure, side="org"),
@@ -47,8 +49,8 @@ class Network(MobilityNetwork):
         self.start_time = start_time
         self.walking_velocity = walking_meters_per_minute
         self.max_waiting_bus_time = max_waiting_bus_time
-        self.graphs: typing.Dict[datetime.date, nx.DiGraph] = {}
-        self.trips: typing.List[gtfs_Trip] = []
+        self.graphs: dict[datetime.date, nx.DiGraph] = {}
+        self.trips: list[gtfs_Trip] = []
 
     def setup(self, trips: typing.Collection[gtfs_Trip]):
         self.trips = list(trips)
@@ -75,7 +77,7 @@ class Network(MobilityNetwork):
 
     def _nodes_on_shortest_path(
         self, graph: nx.DiGraph, org: Location, dst: Location, dept: datetime.datetime
-    ) -> typing.List[SchedulePoint]:
+    ) -> list[SchedulePoint]:
         # Add temporary nodes, indicating org/ dst location.
         # Nodes on the "org" side are only connected to org location.
         # Nodes on the "dst" side are only connected to dst location.
@@ -114,10 +116,10 @@ class Network(MobilityNetwork):
         # The station nearest to the source is preferentially selected.
         # Actually, a single list of nodes in the shortest path.
         try:
-            return sorted(
+            return min(
                 nx.all_shortest_paths(graph, source=org, target=dst, weight="weight"),
                 key=lambda path: path[1].stop.distance(org),
-            )[0][1:-1]
+            )[1:-1]
         except NetworkXNoPath:
             return []
         finally:
@@ -126,7 +128,7 @@ class Network(MobilityNetwork):
 
     def nodes_on_shortest_path(
         self, org: Location, dst: Location, dept: float
-    ) -> typing.List[SchedulePoint]:
+    ) -> list[SchedulePoint]:
         dept = self.datetime_from(dept)
         # graphs in the other day may contain more appropriate paths
         for graph in [

@@ -1,7 +1,6 @@
 # SPDX-FileCopyrightText: 2023 TOYOTA MOTOR CORPORATION and MaaS Blender Contributors
 # SPDX-License-Identifier: Apache-2.0
 import dataclasses
-import typing
 from functools import cache
 
 from geopy.distance import great_circle
@@ -30,7 +29,7 @@ class Trip:
 
 @dataclasses.dataclass(frozen=True)
 class Path:
-    trips: typing.List[Trip]
+    trips: list[Trip]
     walking_time_minutes: float
 
     @property
