@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: 2022 TOYOTA MOTOR CORPORATION and MaaS Blender Contributors
 # SPDX-License-Identifier: Apache-2.0
-import unittest
 import logging
+import unittest
 from datetime import date
 
 from core import Service

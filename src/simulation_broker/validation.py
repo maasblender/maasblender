@@ -9,12 +9,10 @@ from functools import cached_property
 
 import jsonschema
 import yaml
+from jschema.event import Event
+from mblib.jschema.spec import FeatureDefinition, SpecificationResponse, TxRx
 from pydantic import AnyHttpUrl
 from pydantic.json_schema import JsonSchemaValue
-
-from jschema.event import Event
-
-from mblib.jschema.spec import SpecificationResponse, TxRx, FeatureDefinition
 
 logger = logging.getLogger(__name__)
 EventType = str

@@ -3,12 +3,12 @@
 import collections
 import csv
 import datetime
-import typing
 import io
-import zipfile
 import re
+import typing
+import zipfile
 
-from core import Agency, Stop, Route, StopTime, Service, TripLocation, AbstractStopTime
+from core import AbstractStopTime, Agency, Route, Service, Stop, StopTime, TripLocation
 from trip import SingleTrip
 
 p = re.compile(r"(\d\d?):(\d\d?):(\d\d?)")
@@ -24,13 +24,11 @@ def str_time(time: str):
 
 
 def str_date(time: str):
-    return datetime.datetime.strptime(time, "%Y%m%d").date()
+    return datetime.date.fromisoformat(f"{time[:4]}-{time[4:6]}-{time[6:8]}")
 
 
 class GtfsReader:
-    def __init__(
-        self, f, parse: typing.Callable[[typing.Dict[str, str]], typing.Tuple]
-    ):
+    def __init__(self, f, parse: typing.Callable[[dict[str, str]], tuple]):
         self.reader = csv.DictReader(io.TextIOWrapper(f, encoding="utf-8-sig"))
         self.parse = parse
 
@@ -41,7 +39,7 @@ class GtfsReader:
         return self.parse(next(self.reader))
 
 
-def parse_agency(row: typing.Dict[str, str]):
+def parse_agency(row: dict[str, str]):
     return row["agency_id"], Agency(
         agency_name=row["agency_name"],
         agency_url=row["agency_url"],
@@ -49,7 +47,7 @@ def parse_agency(row: typing.Dict[str, str]):
     )
 
 
-def parse_stop(row: typing.Dict[str, str]):
+def parse_stop(row: dict[str, str]):
     return row["stop_id"], Stop(
         stop_id=row["stop_id"],
         name=row["stop_name"],
@@ -58,7 +56,7 @@ def parse_stop(row: typing.Dict[str, str]):
     )
 
 
-def parse_calendar(row: typing.Dict[str, str]):
+def parse_calendar(row: dict[str, str]):
     return row["service_id"], Service(
         start_date=str_date(row["start_date"]),
         end_date=str_date(row["end_date"]),
@@ -72,23 +70,21 @@ def parse_calendar(row: typing.Dict[str, str]):
     )
 
 
-def parse_calendar_dates(row: typing.Dict[str, str]):
+def parse_calendar_dates(row: dict[str, str]):
     return row["service_id"], str_date(row["date"]), row["exception_type"] == "1"
 
 
 class GtfsFilesReader:
     def __init__(self, archive: zipfile.ZipFile):
-        self._agencies: typing.Dict[str, Agency] = {}
-        self.stops: typing.Dict[str, Stop] = {}
-        self._routes: typing.Dict[str, Route] = {}
-        self._stop_times: typing.Dict[str, typing.List[AbstractStopTime]] = (
-            collections.defaultdict(list)
+        self._agencies: dict[str, Agency] = {}
+        self.stops: dict[str, Stop] = {}
+        self._routes: dict[str, Route] = {}
+        self._stop_times: dict[str, list[AbstractStopTime]] = collections.defaultdict(
+            list
         )
-        self._services: typing.Dict[str, Service] = {}
-        self.trips: typing.Dict[str, SingleTrip] = {}
-        self.blocks: typing.Dict[str, typing.List[SingleTrip]] = (
-            collections.defaultdict(list)
-        )
+        self._services: dict[str, Service] = {}
+        self.trips: dict[str, SingleTrip] = {}
+        self.blocks: dict[str, list[SingleTrip]] = collections.defaultdict(list)
 
         with archive.open("agency.txt") as f:
             for k, v in GtfsReader(f, parse_agency):
@@ -126,7 +122,7 @@ class GtfsFilesReader:
                 else:
                     self.trips.update({k: v})
 
-    def parse_route(self, row: typing.Dict[str, str]):
+    def parse_route(self, row: dict[str, str]):
         return row["route_id"], Route(
             agency=self._agencies["agency_id"]
             if self._agencies.get("agency_id")
@@ -136,7 +132,7 @@ class GtfsFilesReader:
             route_type=row["route_type"],
         )
 
-    def parse_stop_time(self, row: typing.Dict[str, str]):
+    def parse_stop_time(self, row: dict[str, str]):
         if stop_id := row.get("stop_id"):
             return row["trip_id"], StopTime(
                 stop=self.stops[stop_id],
@@ -154,7 +150,7 @@ class GtfsFilesReader:
                 "not supported for on-demand bus service using location_group (use ondemand sim.)"
             )
 
-    def parse_trip(self, row: typing.Dict[str, str]):
+    def parse_trip(self, row: dict[str, str]):
         return row["trip_id"], SingleTrip(
             route=self._routes[row["route_id"]],
             service=self._services[row["service_id"]],

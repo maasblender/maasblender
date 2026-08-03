@@ -4,13 +4,12 @@ import logging
 
 import aiohttp
 import fastapi
-
 from core import Location, Route, Trip
-from event import ReservedEvent, DepartedEvent, ArrivedEvent
+from event import ArrivedEvent, DepartedEvent, ReservedEvent
 from jschema import query, response
 from mblib.io import httputil
 from mblib.io.log import init_logger
-from mblib.jschema import spec, events
+from mblib.jschema import events, spec
 from user_manager import UserManager
 
 logger = logging.getLogger(__name__)
@@ -105,16 +104,12 @@ async def setup(settings: query.Setup):
 
 @app.post("/start", response_model=response.Message)
 def start():
-    global manager
-
     manager.start()
     return {"message": "successfully started."}
 
 
 @app.get("/peek", response_model=response.Peek)
 def peek():
-    global manager
-
     peek_time = manager.peek()
 
     return {"next": peek_time if peek_time < float("inf") else -1}

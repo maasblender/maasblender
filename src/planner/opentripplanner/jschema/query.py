@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 from enum import Enum
 
-from pydantic import BaseModel, AnyHttpUrl, model_validator, conlist, constr
+from pydantic import AnyHttpUrl, BaseModel, conlist, constr, model_validator
 
 
 class LocationSetting(BaseModel):

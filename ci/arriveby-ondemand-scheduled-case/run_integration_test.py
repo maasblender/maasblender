@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Integration test for arrive-by scenario with historical, generator, and commuter.
 
@@ -14,7 +13,7 @@ import random
 import sys
 import time
 from dataclasses import dataclass
-from typing import Any, Optional, List
+from typing import Any
 
 import httpx
 
@@ -55,7 +54,7 @@ def request_with_retry(
     method: str,
     url: str,
     *,
-    timeout: Optional[httpx.Timeout] = None,
+    timeout: httpx.Timeout | None = None,
     attempts: int = RETRY_ATTEMPTS,
     **kwargs,
 ) -> httpx.Response:
@@ -144,7 +143,7 @@ def assert_message(data: dict[str, Any], expected_message: str) -> None:
 def post(
     client: httpx.Client,
     url: str,
-    params: Optional[dict] = None,
+    params: dict | None = None,
     **kwargs,
 ) -> dict[str, Any]:
     return request_with_retry(client, "POST", url, params=params, **kwargs).json()
@@ -207,7 +206,7 @@ def get_user_ids(events: list[dict[str, Any]], prefix: str) -> list[str]:
     )
 
 
-def assert_arrived_by(trips: List[Trip], arrived: str, by: float) -> None:
+def assert_arrived_by(trips: list[Trip], arrived: str, by: float) -> None:
     if not trips:
         print(f"  [FAIL] no trips found. expected arrival at {arrived} by {by}")
         sys.exit(1)
@@ -224,7 +223,7 @@ def assert_arrived_by(trips: List[Trip], arrived: str, by: float) -> None:
     sys.exit(1)
 
 
-def assert_used_service(trips: List[Trip], service: str) -> None:
+def assert_used_service(trips: list[Trip], service: str) -> None:
     if any(trip.service == service for trip in trips):
         print(f"  [OK] service used: {service}")
         return
@@ -273,8 +272,8 @@ def assert_any_generator_user_arrived(
 
 
 def split_commuter_trips(
-    trips: List[Trip], turnaround_dst: str
-) -> tuple[List[Trip], List[Trip]]:
+    trips: list[Trip], turnaround_dst: str
+) -> tuple[list[Trip], list[Trip]]:
     """Split commuter trips into outbound and inbound segments.
 
     Outbound is from the first trip up to the first arrival at ``turnaround_dst``.

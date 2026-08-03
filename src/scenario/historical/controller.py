@@ -4,7 +4,6 @@ import logging
 import math
 
 import fastapi
-
 from historical import HistoricalScenario
 from jschema import query, response
 from mblib.io.log import init_logger

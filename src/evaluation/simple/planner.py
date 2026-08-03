@@ -3,9 +3,8 @@
 import dataclasses
 
 import aiohttp
-
-from mblib.io import httputil
 from core import Location
+from mblib.io import httputil
 
 
 @dataclasses.dataclass(frozen=True)

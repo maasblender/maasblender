@@ -5,7 +5,6 @@ import typing
 from dataclasses import dataclass
 
 import simpy
-
 from core import DemandEvent, DemandInfo, Location
 from jschema.query import CommuterSetting
 

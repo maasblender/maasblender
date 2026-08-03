@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: 2022 TOYOTA MOTOR CORPORATION and MaaS Blender Contributors
 # SPDX-License-Identifier: Apache-2.0
-from logging import getLogger
 from datetime import datetime, timedelta
+from logging import getLogger
 
 from simpy import Environment as Original
 

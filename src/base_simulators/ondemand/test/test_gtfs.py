@@ -1,9 +1,9 @@
 # SPDX-FileCopyrightText: 2022 TOYOTA MOTOR CORPORATION and MaaS Blender Contributors
 # SPDX-License-Identifier: Apache-2.0
-import unittest
 import datetime
+import unittest
 
-from core import Stop, Group, StopTime, Service, Trip
+from core import Group, Service, Stop, StopTime, Trip
 from gtfs import GtfsFlexFilesReader
 
 

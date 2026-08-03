@@ -4,8 +4,7 @@ import logging
 import typing
 
 import aiohttp
-
-from engine import Runner, Event
+from engine import Event, Runner
 from mblib.io import httputil
 from mblib.jschema.spec import SpecificationResponse
 
@@ -21,7 +20,7 @@ class HttpRunner(Runner):
     def __str__(self):
         return f"HttpRunner({self.name}, {self._endpoint})"
 
-    async def _get(self, method: str, params: typing.Mapping = None):
+    async def _get(self, method: str, params: typing.Mapping | None = None):
         async with self._session.get(
             self._endpoint + method,
             params=params if params else {},
@@ -33,7 +32,7 @@ class HttpRunner(Runner):
         self,
         method: str,
         data: typing.Any = None,
-        params: typing.Mapping = None,
+        params: typing.Mapping | None = None,
         timeout_seconds=300,
     ):
         async with self._session.post(

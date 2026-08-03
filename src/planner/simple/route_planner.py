@@ -4,7 +4,7 @@ import logging
 import re
 import typing
 
-from core import Location, Path, Trip, MobilityNetwork
+from core import Location, MobilityNetwork, Path, Trip
 from jschema.response import DistanceMatrix
 
 logger = logging.getLogger(__name__)
@@ -16,7 +16,7 @@ class Planner:
     ) -> DistanceMatrix:
         raise NotImplementedError()
 
-    def plan(self, org: Location, dst: Location, dept: float) -> typing.List[Path]:
+    def plan(self, org: Location, dst: Location, dept: float) -> list[Path]:
         raise NotImplementedError()
 
 

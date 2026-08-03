@@ -2,9 +2,8 @@
 # SPDX-License-Identifier: Apache-2.0
 import typing
 
-from pydantic import BaseModel
-
 from mblib.jschema.events import Event
+from pydantic import BaseModel
 
 
 class Message(BaseModel):

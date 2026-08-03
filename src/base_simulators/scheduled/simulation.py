@@ -2,14 +2,13 @@
 # SPDX-License-Identifier: Apache-2.0
 from __future__ import annotations
 
-import typing
 from datetime import datetime
 from logging import getLogger
 
 from environment import Environment
 from event import EventQueue, ReserveFailedEvent
 from mobility import CarManager, CarSetting
-from trip import SingleTrip, BlockTrip
+from trip import BlockTrip, SingleTrip
 
 logger = getLogger(__name__)
 
@@ -19,8 +18,8 @@ class Simulation:
         self,
         start_time: datetime,
         capacity: int,
-        trips: typing.Dict[str, SingleTrip] = None,
-        blocks: typing.Dict[str, list[SingleTrip]] = None,
+        trips: dict[str, SingleTrip] | None = None,
+        blocks: dict[str, list[SingleTrip]] | None = None,
     ) -> None:
         trips = trips or {}
         blocks = blocks or {}

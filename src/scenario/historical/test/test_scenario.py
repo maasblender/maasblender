@@ -2,9 +2,9 @@
 # SPDX-License-Identifier: Apache-2.0
 import unittest
 
+from historical import HistoricalScenario
 from jschema.query import HistoricalDemandSetting, LocationSetting
 from jschema.response import DemandEvent
-from historical import HistoricalScenario
 
 org = LocationSetting(locationId="Org", lat=154.1, lng=27.1)
 dst = LocationSetting(locationId="Dst", lat=154.2, lng=27.3)

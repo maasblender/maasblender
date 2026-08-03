@@ -17,12 +17,12 @@ logger = logging.getLogger(__name__)
 
 
 class AsyncHttpSeqnoHandler(logging.Handler):
-    _instances: list[AsyncHttpSeqnoHandler] = []
+    _instances: typing.ClassVar[list[AsyncHttpSeqnoHandler]] = []
     _url: str
     _session: aiohttp.ClientSession
     _count: itertools.count
     _records: asyncio.Queue[logging.LogRecord]
-    _task: typing.Optional[asyncio.Task]
+    _task: asyncio.Task | None
     _closed: bool
 
     @classmethod
@@ -85,7 +85,7 @@ class AsyncHttpSeqnoHandler(logging.Handler):
 
     async def _send_records(self, nowait=False):
         data = [
-            dict(seqno=next(self._count), data=json.loads(record.getMessage()))
+            {"seqno": next(self._count), "data": json.loads(record.getMessage())}
             async for record in self._pop_records(nowait)
         ]
         if data:

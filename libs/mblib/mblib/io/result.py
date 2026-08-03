@@ -99,7 +99,7 @@ class HTTPResultWriter:
 
     async def _send_records(self, nowait=False):
         data = [
-            dict(seqno=next(self._count), data=record)
+            {"seqno": next(self._count), "data": record}
             async for record in self._pop_records(nowait)
         ]
         if data:
