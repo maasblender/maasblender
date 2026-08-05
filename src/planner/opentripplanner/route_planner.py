@@ -197,7 +197,9 @@ class OpenTripPlanner:
             maxTransfers: 1
           ) {
             itineraries {
-              walkDistance 
+                legs {
+                    distance
+                }
             }
           }
         }
@@ -214,7 +216,9 @@ class OpenTripPlanner:
         )
 
         if response["plan"]["itineraries"]:
-            return response["plan"]["itineraries"][0]["walkDistance"]
+            itinerary = response["plan"]["itineraries"][0]
+            # Return the total distance across all itinerary legs.
+            return sum(leg["distance"] for leg in itinerary["legs"])
         else:
             return 0
 

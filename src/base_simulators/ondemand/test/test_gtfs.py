@@ -83,14 +83,14 @@ class ReadFlexTestCase(unittest.TestCase):
             {
                 "trip_id": "T001",
                 "stop_id": "G001",
-                "start_pickup_dropoff_window": "7:00:00",
-                "end_pickup_dropoff_window": "22:00:00",
+                "start_pickup_drop_off_window": "7:00:00",
+                "end_pickup_drop_off_window": "22:00:00",
             },
             {
                 "trip_id": "T002",
                 "stop_id": "G001",
-                "start_pickup_dropoff_window": "9:00:00",
-                "end_pickup_dropoff_window": "13:00:00",
+                "start_pickup_drop_off_window": "9:00:00",
+                "end_pickup_drop_off_window": "13:00:00",
             },
         ]
         self.trips = [  # trips.txt
