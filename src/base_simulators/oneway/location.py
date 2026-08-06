@@ -3,12 +3,11 @@
 from __future__ import annotations
 
 import typing
-from logging import getLogger
 from functools import reduce
+from logging import getLogger
 
 from core import Location
 from mobility import Scooter
-
 
 logger = getLogger(__name__)
 
@@ -17,8 +16,8 @@ class Dock:
     """Entity that stores a mobility"""
 
     def __init__(self, mobility: Scooter = None):
-        self.reserved: typing.Optional[Scooter] = None
-        self.mobility: typing.Optional[Scooter] = mobility
+        self.reserved: Scooter | None = None
+        self.mobility: Scooter | None = mobility
 
     @property
     def is_available(self):

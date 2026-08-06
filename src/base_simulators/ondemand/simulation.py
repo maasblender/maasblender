@@ -4,8 +4,8 @@ import typing
 from datetime import datetime, timedelta
 from logging import getLogger
 
+from core import Network, Trip, User
 from environment import Environment
-from core import Network, User, Trip
 from event import EventQueue
 from mobility import CarManager, CarSetting
 
@@ -58,7 +58,7 @@ class Simulation:
         self.env.step()
         return self.env.now
 
-    def reservable(self, org: str, dst: str, dept: float = None):
+    def reservable(self, org: str, dst: str, dept: float | None = None):
         org = self.stops[org]
         dst = self.stops[dst]
         return bool(

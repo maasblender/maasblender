@@ -24,7 +24,8 @@ class DemandInfo:
 
     org: Location
     dst: Location
-    dept: float
+    dept: float | None
+    arrv: float | None
     service: str | None
     demand_id: str
     user_type: str | None
@@ -45,6 +46,7 @@ class DemandEvent:
                 "userType": self.info.user_type,
                 "demandId": self.info.demand_id,
                 "dept": self.info.dept,
+                "arrv": self.info.arrv,
                 "org": {
                     "locationId": info.org.location_id,
                     "lat": info.org.lat,

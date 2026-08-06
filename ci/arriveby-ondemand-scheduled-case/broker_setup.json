@@ -8,9 +8,11 @@
   "walking": {
     "type": "http",
     "endpoint": "http://walking",
-    "details": {}
+    "details": {
+      "walking_meters_per_minute": 60.0
+    }
   },
-  "scenario": {
+  "scenario_historical": {
     "type": "http",
     "endpoint": "http://scenario_historical",
     "details": {
@@ -26,11 +28,62 @@
             "lat": 36.6835921,
             "lng": 137.2044729
           },
-          "time": 540.0,
-          "dept": 540.0
+          "time": 539.0,
+          "arrv": 570.0,
+          "service": "gtfs"
         }
       ],
       "userIDFormat": "U_%d"
+    }
+  },
+  "scenario_generator": {
+    "type": "http",
+    "endpoint": "http://scenario_generator",
+    "details": {
+      "demands":[
+        {
+          "org": {
+            "locationId": "toyama_station",
+            "lat": 36.7014265,
+            "lng": 137.210879
+          },
+          "dst": {
+            "locationId": "toyama_court",
+            "lat": 36.6835921,
+            "lng": 137.2044729
+          },
+          "begin": 540.0,
+          "end": 1080.0,
+          "resv": 540.0,
+          "expected_demands": 10,
+          "arrive_by": true
+        }
+      ],
+      "seed": 1,
+      "userIDFormat": "GU_%d"
+    }
+  },
+  "scenario_commuter": {
+    "type": "http",
+    "endpoint": "http://scenario_commuter",
+    "details": {
+      "commuters": {
+        "CU_001": {
+          "org": {
+            "locationId": "toyama_station",
+            "lat": 36.7014265,
+            "lng": 137.210879
+          },
+          "dst": {
+            "locationId": "toyama_court",
+            "lat": 36.6835921,
+            "lng": 137.2044729
+          },
+          "arrvOut": 555.0,
+          "arrvIn": 1105.0,
+          "leadTime": 20.0
+        }
+      }
     }
   },
   "gtfs": {
@@ -71,7 +124,7 @@
         }
       },
       "reference_time": "20230404",
-      "walking_meters_per_minute": 80.0
+      "walking_meters_per_minute": 60.0
     }
   },
   "user": {
@@ -79,7 +132,7 @@
     "endpoint": "http://user_model",
     "details": {
       "planner": {
-        "endpoint":  "http://planner/plan"
+        "endpoint": "http://broker/plan"
       }
     }
   }

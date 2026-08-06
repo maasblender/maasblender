@@ -3,7 +3,8 @@ name: Unit Test
 on:
   pull_request:
     branches:
-      - main
+      - "main"
+      - "v[0-9]+.[0-9]+.[0-9]+*"
 
 jobs:
   set-matrix:

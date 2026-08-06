@@ -2,12 +2,8 @@
 # SPDX-License-Identifier: Apache-2.0
 from __future__ import annotations
 
-import typing
-
 import simpy
-
 from core import EventType, Mobility
-
 from location import Location
 
 
@@ -15,7 +11,7 @@ class Event:
     def __init__(self, event_type: EventType):
         self.event_type = event_type
 
-    def dumps(self) -> typing.Dict:
+    def dumps(self) -> dict:
         return {"eventType": self.event_type}
 
 
@@ -85,11 +81,11 @@ class ReserveFailedEvent(Event):
 class DepartedArrivedEvent(Event):
     def __init__(
         self,
-        event_type: typing.Union[EventType.DEPARTED, EventType.ARRIVED],
+        event_type: EventType.DEPARTED | EventType.ARRIVED,
         mobility: Mobility,
         location: Location,
-        user_id: str = None,
-        demand_id: str = None,
+        user_id: str | None = None,
+        demand_id: str | None = None,
     ):
         super().__init__(event_type=event_type)
         self.user_id = user_id
@@ -117,8 +113,8 @@ class DepartedEvent(DepartedArrivedEvent):
         self,
         mobility: Mobility,
         location: Location,
-        user_id: str = None,
-        demand_id: str = None,
+        user_id: str | None = None,
+        demand_id: str | None = None,
     ):
         super().__init__(EventType.DEPARTED, mobility, location, user_id, demand_id)
 
@@ -128,8 +124,8 @@ class ArrivedEvent(DepartedArrivedEvent):
         self,
         mobility: Mobility,
         location: Location,
-        user_id: str = None,
-        demand_id: str = None,
+        user_id: str | None = None,
+        demand_id: str | None = None,
     ):
         super().__init__(EventType.ARRIVED, mobility, location, user_id, demand_id)
 

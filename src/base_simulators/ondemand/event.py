@@ -1,7 +1,6 @@
 # SPDX-FileCopyrightText: 2022 TOYOTA MOTOR CORPORATION and MaaS Blender Contributors
 # SPDX-License-Identifier: Apache-2.0
 import datetime
-import typing
 
 from core import EventType, Mobility, User
 from environment import Environment
@@ -12,7 +11,7 @@ class TriggerEvent:
         self.event_type = event_type
         self.env = env
 
-    def dumps(self) -> typing.Dict:
+    def dumps(self) -> dict:
         return {"eventType": self.event_type, "time": self.env.now}
 
 
@@ -114,7 +113,7 @@ class ArrivedEvent(DepartedArrivedEvent):
 class EventQueue:
     def __init__(self, env: Environment):
         self._env = env
-        self._events: typing.List[typing.Dict] = []
+        self._events: list[dict] = []
 
     def __repr__(self):
         return f"EventQueue(env=Environment({self.env.datetime_now}), events={self._events})"

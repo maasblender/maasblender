@@ -33,6 +33,7 @@ class DemandEvent:
     user_id: str
     demand_id: str
     dept: float | None
+    arrv: float | None
     info: DemandInfo
 
     def dumps(self) -> dict:
@@ -55,5 +56,6 @@ class DemandEvent:
                 },
                 "service": info.service,
                 "dept": self.dept,
+                "arrv": self.arrv,
             },
         }

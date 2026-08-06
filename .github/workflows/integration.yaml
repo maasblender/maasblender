@@ -4,263 +4,48 @@ on:
   push:
     branches:
       - "main"
+      - "v[0-9]+.[0-9]+.[0-9]+*"
   pull_request:
     branches:
       - "main"
+      - "v[0-9]+.[0-9]+.[0-9]+*"
 
 jobs:
-  scheduled-historical-case:
-    name: Run scheduled historical test case
+  set-matrix:
     runs-on: ubuntu-latest
+    outputs:
+      subdirs: ${{ steps.set-subdir.outputs.target-list }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Get ci test case directories
+        id: set-subdir
+        run: |
+          list=$(find ./ci -name run_integration_test.py | sed -r "s/^(.*)run_integration_test.py/\1/g" | jq -R -s -c 'split("\n")[:-1]')
+          echo "target-list=$list" >> $GITHUB_OUTPUT
+
+  integration-test:
+    name: Run integration test (${{ matrix.target }})
+    runs-on: ubuntu-latest
+    needs: set-matrix
+    strategy:
+      matrix:
+        target: ${{ fromJson(needs.set-matrix.outputs.subdirs) }}
     defaults:
       run:
-        working-directory: ci/scheduled-historical
+        working-directory: ${{ matrix.target }}
     steps:
       - uses: actions/checkout@v4
 
       - name: Run docker compose up
         run: docker compose up -d
 
-      - name: Wait for service to be ready
-        run: sleep 10
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
 
-      - name: Setup the scheduled simulation
-        run: |
-          response=$(curl -sS -X POST -F upload_file=@./gtfs.zip http://localhost:3001/upload)
-          message=$(echo $response | jq -r '.message')
-          if [ "$message" = "successfully uploaded. gtfs.zip" ]; then
-            echo "Validation passed: $message"
-          else
-            echo "Validation failed: $response"
-            exit 1
-          fi
+      - name: Install dependencies
+        run: pip install -r requirements.txt
 
-      - name: Setup the OpenTripPlanner planner
-        run: |
-          response=$(curl -sS -X POST -F upload_file=@./gtfs.zip http://localhost:3010/upload)
-          message=$(echo $response | jq -r '.message')
-          if [ "$message" = "successfully uploaded. gtfs.zip" ]; then
-            echo "Validation passed: $message"
-          else
-            echo "Validation failed: $response"
-            exit 1
-          fi
-
-      - name: Setup the OpenTripPlanner planner
-        run: |
-          response=$(curl -sS -X POST -F upload_file=@./otp-config.zip http://localhost:3010/upload)
-          message=$(echo $response | jq -r '.message')
-          if [ "$message" = "successfully uploaded. otp-config.zip" ]; then
-            echo "Validation passed: $message"
-          else
-            echo "Validation failed: $response"
-            exit 1
-          fi
-
-      - name: Setup the broker
-        run: |
-          response=$(curl -sS -X POST -H "Content-Type: application/json" -d @./broker_setup.json http://localhost:3000/setup)
-          message=$(echo $response | jq -r '.message')
-          if [ "$message" = "successfully configured." ]; then
-            echo "Validation passed: $message"
-          else
-            echo "Validation failed: $response"
-            exit 1
-          fi
-
-      - name: Start the simulation
-        run: |
-          response=$(curl -sS -X POST http://localhost:3000/start)
-          message=$(echo $response | jq -r '.message')
-          if [ "$message" = "successfully started." ]; then
-            echo "Validation passed: $message"
-          else
-            echo "Validation failed: $response"
-            exit 1
-          fi
-
-      - name: Run the simulation
-        run: |
-          response=$(curl -sS -X POST -H "Content-Type: application/json" http://localhost:3000/run?until=2880)
-          message=$(echo $response | jq -r '.message')
-          if [ "$message" = "successfully run." ]; then
-            echo "Validation passed: $message"
-          else
-            echo "Validation failed: $response"
-            exit 1
-          fi
-
-      - name: Wait
-        run: sleep 10
-
-      - name: Verify the simulation is running successfully
-        run: |
-          response=$(curl -s http://localhost:3000/peek)
-          success=$(echo $response | jq '.success')
-          if [ "$success" = "true" ]; then
-            echo "Validation passed: success"
-          else
-            echo "Validation failed: success is not true"
-            exit 1
-          fi
-
-      - name: Finish the simulation
-        run: |
-          response=$(curl -s -X POST http://localhost:3000/finish)
-          message=$(echo $response | jq -r '.message')
-          if [ "$message" = "successfully finished." ]; then
-            echo "Validation passed: $message"
-          else
-            echo "Validation failed: $response"
-            exit 1
-          fi
-
-      - name: Get the result and validate
-        run: |
-          response=$(curl -sS http://localhost:3000/events)
-          line_count=$(echo "$response" | wc -l)
-          if [ "$line_count" -ge 200 ]; then
-            echo "Validation passed: Line count is $line_count"
-          else
-            echo "Validation failed: Line count is only $line_count"
-            exit 1
-          fi
-
-  ondemand-oneway-generator-commuter-case:
-    name: Run ondemand oneway generator commuter test case
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ci/ondemand-oneway-generator-commuter-case
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Run docker compose up
-        run: docker compose up -d
-
-      - name: Wait for service to be ready
-        run: sleep 10
-
-      - name: Setup the ondemand simulation
-        run: |
-          response=$(curl -sS -X POST -F upload_file=@./flex.zip http://localhost:3002/upload)
-          message=$(echo $response | jq -r '.message')
-          if [ "$message" = "successfully uploaded. flex.zip" ]; then
-            echo "Validation passed: $message"
-          else
-            echo "Validation failed: $response"
-            exit 1
-          fi
-
-      - name: Setup the simple planner for ondemand
-        run: |
-          response=$(curl -sS -X POST -F upload_file=@./flex.zip http://localhost:3010/upload)
-          message=$(echo $response | jq -r '.message')
-          if [ "$message" = "successfully uploaded. flex.zip" ]; then
-            echo "Validation passed: $message"
-          else
-            echo "Validation failed: $response"
-            exit 1
-          fi
-
-      - name: Setup the oneway simulation
-        run: |
-          response=$(curl -sS -X POST -F upload_file=@./gbfs.zip http://localhost:3003/upload)
-          message=$(echo $response | jq -r '.message')
-          if [ "$message" = "successfully uploaded. gbfs.zip" ]; then
-            echo "Validation passed: $message"
-          else
-            echo "Validation failed: $response"
-            exit 1
-          fi
-
-      - name: Setup the simple planner for oneway
-        run: |
-          response=$(curl -sS -X POST -F upload_file=@./gbfs.zip http://localhost:3010/upload)
-          message=$(echo $response | jq -r '.message')
-          if [ "$message" = "successfully uploaded. gbfs.zip" ]; then
-            echo "Validation passed: $message"
-          else
-            echo "Validation failed: $response"
-            exit 1
-          fi
-
-      - name: Setup the broker
-        run: |
-          response=$(curl -sS -X POST -H "Content-Type: application/json" -d @./broker_setup.json http://localhost:3000/setup)
-          message=$(echo $response | jq -r '.message')
-          if [ "$message" = "successfully configured." ]; then
-            echo "Validation passed: $message"
-          else
-            echo "Validation failed: $response"
-            exit 1
-          fi
-
-      - name: Start the simulation
-        run: |
-          response=$(curl -sS -X POST http://localhost:3000/start)
-          message=$(echo $response | jq -r '.message')
-          if [ "$message" = "successfully started." ]; then
-            echo "Validation passed: $message"
-          else
-            echo "Validation failed: $response"
-            exit 1
-          fi
-
-      - name: Run the simulation
-        run: |
-          response=$(curl -sS -X POST -H "Content-Type: application/json" http://localhost:3000/run?until=2880)
-          message=$(echo $response | jq -r '.message')
-          if [ "$message" = "successfully run." ]; then
-            echo "Validation passed: $message"
-          else
-            echo "Validation failed: $response"
-            exit 1
-          fi
-
-      - name: Wait
-        run: sleep 15
-
-      - name: Verify the simulation is running successfully
-        run: |
-          response=$(curl -s http://localhost:3000/peek)
-          success=$(echo $response | jq '.success')
-          if [ "$success" = "true" ]; then
-            echo "Validation passed: success"
-          else
-            echo "Validation failed: success is not true"
-            exit 1
-          fi
-
-      - name: Finish the simulation
-        run: |
-          response=$(curl -s -X POST http://localhost:3000/finish)
-          message=$(echo $response | jq -r '.message')
-          if [ "$message" = "successfully finished." ]; then
-            echo "Validation passed: $message"
-          else
-            echo "Validation failed: $response"
-            exit 1
-          fi
-
-      - name: Validate events result
-        run: |
-          response=$(curl -sS http://localhost:3000/events)
-          line_count=$(echo "$response" | wc -l)
-          if [ "$line_count" -ge 200 ]; then
-            echo "Validation passed: Line count is $line_count"
-          else
-            echo "Validation failed: Line count is only $line_count"
-            exit 1
-          fi
-
-      - name: Validate evaluation result
-        run: |
-          response=$(curl -sS http://localhost:3020/evaluation)
-          line_count=$(echo "$response" | wc -l)
-          if [ "$line_count" -ge 2 ]; then
-            echo "Validation passed: Line count is $line_count"
-          else
-            echo "Validation failed: Line count is only $line_count"
-            exit 1
-          fi
+      - name: Run integration test
+        run: python run_integration_test.py

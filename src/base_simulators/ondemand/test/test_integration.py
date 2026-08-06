@@ -1,13 +1,14 @@
 # SPDX-FileCopyrightText: 2022 TOYOTA MOTOR CORPORATION and MaaS Blender Contributors
 # SPDX-License-Identifier: Apache-2.0
-import unittest
 import logging
-from datetime import datetime, date, time, timedelta
+import unittest
+from datetime import date, datetime, time, timedelta
 
-from simulation import Simulation, CarSetting
-from core import EventType, Stop, StopTime, Service, Trip, Group, Network
+from core import EventType, Group, Network, Service, Stop, StopTime, Trip
+from simulation import CarSetting, Simulation
 
 logger = logging.getLogger(__name__)
+BASE_DATE = date(2022, 1, 1)
 
 
 def run(simulation: Simulation, until: float):
@@ -36,7 +37,7 @@ def run_until_reserved(simulation: Simulation):
 
 class OneMobilityTestCase(unittest.TestCase):
     def setUp(self) -> None:
-        self.base_datetime = datetime.combine(date.today(), time())
+        self.base_datetime = datetime.combine(BASE_DATE, time())
         self.stop1 = Stop(stop_id="Stop1", name=..., lat=..., lng=...)
         self.stop2 = Stop(stop_id="Stop2", name=..., lat=..., lng=...)
         self.stop3 = Stop(stop_id="Stop3", name=..., lat=..., lng=...)
@@ -1857,7 +1858,7 @@ class OneMobilityTestCase(unittest.TestCase):
 
 class TwoMobilityTestCase(unittest.TestCase):
     def setUp(self) -> None:
-        self.base_datetime = datetime.combine(date.today(), time())
+        self.base_datetime = datetime.combine(BASE_DATE, time())
         self.stop1 = Stop(stop_id="Stop1", name=..., lat=..., lng=...)
         self.stop2 = Stop(stop_id="Stop2", name=..., lat=..., lng=...)
         self.stop3 = Stop(stop_id="Stop3", name=..., lat=..., lng=...)

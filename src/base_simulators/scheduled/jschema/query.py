@@ -1,8 +1,7 @@
 # SPDX-FileCopyrightText: 2022 TOYOTA MOTOR CORPORATION and MaaS Blender Contributors
 # SPDX-License-Identifier: Apache-2.0
-from pydantic import BaseModel, AnyHttpUrl, model_validator, conlist, constr
-
-from mblib.jschema.events import ReserveEvent, DepartEvent
+from mblib.jschema.events import DepartEvent, ReserveEvent
+from pydantic import AnyHttpUrl, BaseModel, conlist, constr, model_validator
 
 
 class Mobility(BaseModel):

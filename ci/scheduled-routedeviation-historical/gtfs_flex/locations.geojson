@@ -1,0 +1,22 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "id": "rd_station_court",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [137.2200, 36.7040],
+            [137.2000, 36.7040],
+            [137.2000, 36.6810],
+            [137.2200, 36.6810],
+            [137.2200, 36.7040]
+          ]
+        ]
+      },
+      "properties": {}
+    }
+  ]
+}

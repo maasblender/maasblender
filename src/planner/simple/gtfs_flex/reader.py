@@ -1,14 +1,13 @@
 # SPDX-FileCopyrightText: 2023 TOYOTA MOTOR CORPORATION
 # SPDX-License-Identifier: Apache-2.0
-import typing
-import datetime
 import csv
+import datetime
 import io
-import zipfile
 import re
+import typing
+import zipfile
 
-from gtfs_flex.object import Stop, Group, StopTime, Service, Trip
-
+from gtfs_flex.object import Group, Service, Stop, StopTime, Trip
 
 p = re.compile(r"(\d\d?):(\d\d?):(\d\d?)")
 
@@ -23,19 +22,20 @@ def str_time(time: str):
 
 
 def str_date(time: str):
-    return datetime.datetime.strptime(time, "%Y%m%d").date()
+    return datetime.date.fromisoformat(f"{time[:4]}-{time[4:6]}-{time[6:8]}")
 
 
 class FilesReader:
     def __init__(self, archive: zipfile.ZipFile):
-        self.stops: typing.Dict[str, Stop] = {}
-        self.location_groups: typing.Dict[str, Group] = {}
-        self._stop_times: typing.Dict[str, StopTime] = {}
-        self._services: typing.Dict[str, Service] = {}
-        self.trips: typing.Dict[str, Trip] = {}
+        self.stops: dict[str, Stop] = {}
+        self.location_groups: dict[str, Group] = {}
+        self._stop_times: dict[str, StopTime] = {}
+        self._services: dict[str, Service] = {}
+        self.trips: dict[str, Trip] = {}
         for filename, parse in {
             "stops.txt": self._parse_stop,
             "location_groups.txt": self._parse_location_groups,
+            "location_group_stops.txt": self._parse_location_group_stops,
             "calendar.txt": self._parse_calender,
             "calendar_dates.txt": self._parse_calender_dates,
             "stop_times.txt": self._parse_stop_time,
@@ -63,7 +63,13 @@ class FilesReader:
         if not group:
             group = Group(group_id=group_id, name=row["location_group_name"])
             self.location_groups[group_id] = group
-        group.locations.append(self.stops[row["location_id"]])
+        # In OTP 2.5 and later, separated this 'location_id' column into location_group_stops.txt
+        if location_id := row.get("location_id", None):
+            group.locations.append(self.stops[location_id])
+
+    def _parse_location_group_stops(self, row: typing.Mapping[str, str]):
+        group_id = row["location_group_id"]
+        self.location_groups[group_id].locations.append(self.stops[row["stop_id"]])
 
     def _parse_calender(self, row: typing.Mapping[str, str]):
         self._services.update(
@@ -88,12 +94,14 @@ class FilesReader:
         )
 
     def _parse_stop_time(self, row: typing.Mapping[str, str]):
+        # "stop_id" column describes In old GTFS FLEX spec.
+        location_group_id = row.get("location_group_id") or row.get("stop_id")
         self._stop_times.update(
             {
                 row["trip_id"]: StopTime(
-                    group=self.location_groups[row["stop_id"]],
-                    start_window=str_time(row["start_pickup_dropoff_window"]),
-                    end_window=str_time(row["end_pickup_dropoff_window"]),
+                    group=self.location_groups[location_group_id],
+                    start_window=str_time(row["start_pickup_drop_off_window"]),
+                    end_window=str_time(row["end_pickup_drop_off_window"]),
                 )
             }
         )

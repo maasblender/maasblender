@@ -2,7 +2,7 @@ aiohttp~=3.8.5
 fastapi~=0.103.2
 pydantic~=2.4.2
 pydantic_settings~=2.0.3
-simpy~=4.0.2
+simpy~=4.1.1
 uvicorn~=0.23.2
 
 jsonschema~=4.19.1

@@ -2,9 +2,8 @@
 # SPDX-License-Identifier: Apache-2.0
 import dataclasses
 
-from simpy import Environment
-
 from core import Location
+from simpy import Environment
 
 
 @dataclasses.dataclass(frozen=True)

@@ -1,4 +1,5 @@
 import json
+import sys
 import time
 import zipfile
 from pathlib import Path
@@ -141,7 +142,7 @@ def main():
                 },
                 headers={"accept": "application/json"},
             )
-            if not response.status_code == 200:
+            if response.status_code != 200:
                 print(response.text)
                 return
             print(response.json())
@@ -158,7 +159,7 @@ def main():
                 },
                 headers={"accept": "application/json"},
             )
-            if not response.status_code == 200:
+            if response.status_code != 200:
                 print(response.text)
                 return
             print(response.json())
@@ -176,7 +177,7 @@ def main():
                 },
                 headers={"accept": "application/json"},
             )
-            if not response.status_code == 200:
+            if response.status_code != 200:
                 print(response.text)
                 return
             print(response.json())
@@ -196,9 +197,9 @@ def main():
             print(response.json())
             if response.status_code != 200:
                 return
-        except Exception:
+        except json.JSONDecodeError:
             print(response.text)
-            exit(-1)
+            sys.exit(-1)
 
         # 4. Starts the broker service
         # Sends a request to `localhost:3000/start` to start the initialization process.
@@ -207,9 +208,9 @@ def main():
         )
         try:
             print(response.json())
-        except Exception:
+        except json.JSONDecodeError:
             print(response.text)
-            exit(-1)
+            sys.exit(-1)
 
         # 5. Runs the simulation
         # Sends a request to `localhost:3000/run` with a simulation duration parameter (`until=1440`).
@@ -220,9 +221,9 @@ def main():
         )
         try:
             print(response.json())
-        except Exception:
+        except json.JSONDecodeError:
             print(response.text)
-            exit(-2)
+            sys.exit(-2)
 
         # 6. Periodically checks the simulation status
         # Polls the broker service every 10 seconds to check if the simulation is still running.
@@ -240,8 +241,8 @@ def main():
                     print("running:", next_time)
                 else:
                     print("failed", next_time)
-                    exit(-3)
-            except Exception:
+                    sys.exit(-3)
+            except json.JSONDecodeError:
                 print(response.text)
         print("successfully finished.")
 

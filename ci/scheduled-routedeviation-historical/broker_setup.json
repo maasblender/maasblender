@@ -1,0 +1,146 @@
+{
+  "broker": {
+    "type": "broker",
+    "details": {
+      "writer": {}
+    }
+  },
+  "walking": {
+    "type": "http",
+    "endpoint": "http://walking",
+    "details": {}
+  },
+  "scenario": {
+    "type": "http",
+    "endpoint": "http://scenario_historical",
+    "details": {
+      "trips":[
+        {
+          "org": {
+            "locationId": "toyama_station",
+            "lat": 36.7014265,
+            "lng": 137.210879
+          },
+          "dst": {
+            "locationId": "toyama_court",
+            "lat": 36.6835921,
+            "lng": 137.2044729
+          },
+          "time": 540.0,
+          "dept": 540.0,
+          "service": "gtfs"
+        },
+        {
+          "org": {
+            "locationId": "miyashita_bridge",
+            "lat": 36.696609,
+            "lng": 137.219074
+          },
+          "dst": {
+            "locationId": "toyama_court",
+            "lat": 36.6835921,
+            "lng": 137.2044729
+          },
+          "time": 530.0,
+          "dept": 540.0,
+          "service": "route_deviation"
+        }
+      ],
+      "userIDFormat": "U_%d"
+    }
+  },
+  "gtfs": {
+    "type": "http",
+    "endpoint": "http://scheduled",
+    "details": {
+      "reference_time": "20230404",
+      "input_files": [
+        {
+          "filename": "gtfs.zip"
+        }
+      ],
+      "mobility": {
+        "capacity": 20
+      }
+    }
+  },
+  "route_deviation": {
+    "type": "http",
+    "endpoint": "http://route_deviation",
+    "details": {
+      "reference_time": "20230404",
+      "input_files": [
+        {
+          "filename": "gtfs_flex.zip"
+        }
+      ],
+      "mobility": {
+        "capacity": 1
+      }
+    }
+  },
+  "planner": {
+    "type": "planner",
+    "endpoint": "http://planner",
+    "details": {
+      "otp_config": {
+        "input_files": [
+          {
+            "filename": "otp-config.zip"
+          }
+        ]
+      },
+      "modes": [
+      {
+        "modes": [
+          { "mode": "WALK" },
+          { "mode": "TRANSIT" }
+        ]
+      },
+      {
+        "modes": [
+          { "mode": "WALK" },
+          { "mode": "FLEX", "qualifier": "DIRECT" }
+        ]
+      },
+      {
+        "modes": [
+          { "mode": "TRANSIT" },
+          { "mode": "FLEX", "qualifier": "ACCESS" },
+          { "mode": "FLEX", "qualifier": "EGRESS" }
+        ]
+      }],
+      "networks": {
+        "gtfs": {
+          "type": "gtfs",
+          "input_files": [
+            {
+              "filename": "gtfs.zip"
+            }
+          ],
+          "agency_id": "7230001002032"
+        },
+        "route_deviation": {
+          "type": "gtfs",
+          "input_files": [
+            {
+              "filename": "gtfs_flex.zip"
+            }
+          ],
+          "agency_id": "route_deviation"
+        }
+      },
+      "reference_time": "20230404",
+      "walking_meters_per_minute": 50.0
+    }
+  },
+  "user": {
+    "type": "http",
+    "endpoint": "http://user_model",
+    "details": {
+      "planner": {
+        "endpoint": "http://broker/plan"
+      }
+    }
+  }
+}

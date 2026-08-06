@@ -17,7 +17,7 @@ class Stop(Location):
 class Group:
     """Group of stops"""
 
-    def __init__(self, group_id: str, name: str, locations: list[Stop] = None):
+    def __init__(self, group_id: str, name: str, locations: list[Stop] | None = None):
         self.group_id = group_id
         self.name = name
         self.locations: list[Stop] = locations if locations else []
@@ -44,8 +44,8 @@ class Service:
         self._start_day = start_date
         self._end_day = end_date
         self._weekday = [monday, tuesday, wednesday, thursday, friday, saturday, sunday]
-        self._added_exceptions: typing.List[date] = []
-        self._removed_exceptions: typing.List[date] = []
+        self._added_exceptions: list[date] = []
+        self._removed_exceptions: list[date] = []
 
     def append_exception(self, exception_date: date, added=True):
         if added:

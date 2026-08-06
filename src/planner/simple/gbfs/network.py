@@ -1,13 +1,11 @@
 # SPDX-FileCopyrightText: 2022 TOYOTA MOTOR CORPORATION and MaaS Blender Contributors
 # SPDX-License-Identifier: Apache-2.0
 import itertools
-import typing
 import logging
+import typing
 
 import networkx as nx
-
-from core import Location, Path, Trip, MobilityNetwork
-
+from core import Location, MobilityNetwork, Path, Trip
 
 logger = logging.getLogger(__name__)
 
@@ -66,7 +64,7 @@ class Network(MobilityNetwork):
             )
 
         # a list of nodes in the shortest path
-        nodes_on_path: typing.List[Node] = nx.shortest_path(
+        nodes_on_path: list[Node] = nx.shortest_path(
             self.graph, source=org, target=dst, weight="cost"
         )[1:-1]
 
@@ -89,7 +87,7 @@ class Network(MobilityNetwork):
             )
         ]
 
-        for a, b in zip(nodes_on_path, nodes_on_path[1:]):
+        for a, b in itertools.pairwise(nodes_on_path):
             dept = arrv
             arrv += a.location.distance(b.location) / self.mobility_velocity
             trips.append(

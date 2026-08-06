@@ -2,15 +2,15 @@
 # SPDX-License-Identifier: Apache-2.0
 import collections
 import csv
-import typing
 import datetime
 import io
-import zipfile
 import re
+import typing
+import zipfile
 
 from core import Location
-from gtfs.object import StopTime, Service, Trip
 
+from gtfs.object import Service, StopTime, Trip
 
 p = re.compile(r"(\d\d?):(\d\d?):(\d\d?)")
 
@@ -25,13 +25,11 @@ def str_time(time: str):
 
 
 def str_date(time: str):
-    return datetime.datetime.strptime(time, "%Y%m%d").date()
+    return datetime.date.fromisoformat(f"{time[:4]}-{time[4:6]}-{time[6:8]}")
 
 
 class FileReader:
-    def __init__(
-        self, f, parse: typing.Callable[[typing.Dict[str, str]], typing.Tuple]
-    ):
+    def __init__(self, f, parse: typing.Callable[[dict[str, str]], tuple]):
         self.reader = csv.DictReader(io.TextIOWrapper(f, encoding="utf-8-sig"))
         self.parse = parse
 
@@ -42,13 +40,13 @@ class FileReader:
         return self.parse(next(self.reader))
 
 
-def parse_stop(row: typing.Dict[str, str]):
+def parse_stop(row: dict[str, str]):
     return row["stop_id"], Location(
         id_=row["stop_id"], lat=float(row["stop_lat"]), lng=float(row["stop_lon"])
     )
 
 
-def parse_calendar(row: typing.Dict[str, str]):
+def parse_calendar(row: dict[str, str]):
     return row["service_id"], Service(
         start_date=str_date(row["start_date"]),
         end_date=str_date(row["end_date"]),
@@ -62,18 +60,16 @@ def parse_calendar(row: typing.Dict[str, str]):
     )
 
 
-def parse_calendar_dates(row: typing.Dict[str, str]):
+def parse_calendar_dates(row: dict[str, str]):
     return row["service_id"], str_date(row["date"]), row["exception_type"] == "1"
 
 
 class FilesReader:
     def __init__(self, archive: zipfile.ZipFile):
-        self.stops: typing.Dict[str, Location] = {}
-        self._stop_times: typing.Dict[str, typing.List[StopTime]] = (
-            collections.defaultdict(list)
-        )
-        self._services: typing.Dict[str, Service] = {}
-        self.trips: typing.Dict[str, Trip] = {}
+        self.stops: dict[str, Location] = {}
+        self._stop_times: dict[str, list[StopTime]] = collections.defaultdict(list)
+        self._services: dict[str, Service] = {}
+        self.trips: dict[str, Trip] = {}
 
         with archive.open("stops.txt") as f:
             for k, v in FileReader(f, parse_stop):
@@ -97,14 +93,14 @@ class FilesReader:
             for k, v in FileReader(f, self.parse_trip):
                 self.trips.update({k: v})
 
-    def parse_stop_time(self, row: typing.Dict[str, str]):
+    def parse_stop_time(self, row: dict[str, str]):
         return row["trip_id"], StopTime(
             stop=self.stops[row["stop_id"]],
             arrival=str_time(row["arrival_time"]),
             departure=str_time(row["departure_time"]),
         )
 
-    def parse_trip(self, row: typing.Dict[str, str]):
+    def parse_trip(self, row: dict[str, str]):
         return row["trip_id"], Trip(
             service=self._services[row["service_id"]],
             stop_times=self._stop_times[row["trip_id"]],

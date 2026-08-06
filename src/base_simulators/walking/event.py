@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 import dataclasses
 
-from core import Location, EventType
+from core import EventType, Location
 
 
 @dataclasses.dataclass

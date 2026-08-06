@@ -7,11 +7,11 @@ import math
 import re
 import typing
 
-from gql import Client, gql
-from gql.transport.aiohttp import AIOHTTPTransport, log as aiohttp_logger
 import aiohttp
-
 from core import Location, Path, Trip, calc_distance
+from gql import Client, gql
+from gql.transport.aiohttp import AIOHTTPTransport
+from gql.transport.aiohttp import log as aiohttp_logger
 from jschema.response import DistanceMatrix
 
 logger = logging.getLogger(__name__)
@@ -51,6 +51,11 @@ class OpenTripPlanner:
                     {"mode": "TRANSIT"},
                 ],
                 [{"mode": "WALK"}, {"mode": "FLEX", "qualifier": "DIRECT"}],
+                [
+                    {"mode": "TRANSIT"},
+                    {"mode": "FLEX", "qualifier": "ACCESS"},
+                    {"mode": "FLEX", "qualifier": "EGRESS"},
+                ],
             ]
         )
         self.services = services  # key: agency_id, value: service name
@@ -68,9 +73,11 @@ class OpenTripPlanner:
 
     async def health(self):
         try:
-            async with aiohttp.ClientSession() as session:
-                async with session.get(f"{self.endpoint}/otp/actuators/health") as resp:
-                    result = await resp.json()
+            async with (
+                aiohttp.ClientSession() as session,
+                session.get(f"{self.endpoint}/otp/actuators/health") as resp,
+            ):
+                result = await resp.json()
             return result == {"status": "UP"}
         except aiohttp.ClientConnectionError:
             return False
@@ -103,21 +110,32 @@ class OpenTripPlanner:
                 matrix.append(list(vals))
         return DistanceMatrix(stops=stops_org, matrix=matrix)
 
-    async def plan(self, org: Location, dst: Location, dept: float) -> list[Path]:
+    async def plan(
+        self,
+        org: Location,
+        dst: Location,
+        dept: float,
+        arrv: float | None = None,
+    ) -> list[Path]:
         paths: list[Path] = []
         for modes in self.transport_modes:
             async for path in self._plan_query(
-                modes=modes, org=org, dst=dst, dept=dept
+                modes=modes, org=org, dst=dst, dept=dept, arrv=arrv
             ):
                 if path not in paths:  # ignore duplicated walking path
                     paths.append(path)
-        paths.sort(key=lambda e: e.arrv)
+
+        if arrv is not None:
+            # arrive-by: sort by departure time descending (latest departure first)
+            paths.sort(key=lambda e: e.dept, reverse=True)
+        else:
+            paths.sort(key=lambda e: e.arrv)
 
         if not any(
             all(trip.service == "walking" for trip in path.trips) for path in paths
         ):
             # If a walking route is not found, append a walking route.
-            walk_path = self.straight_walk_path(org, dst, dept)
+            walk_path = self.straight_walk_path(org, dst, dept=dept, arrv=arrv)
             paths.append(walk_path)
             if not paths:
                 logger.warning("no plan by OTP, and return straight walk path.")
@@ -129,18 +147,29 @@ class OpenTripPlanner:
 
         return paths
 
-    def straight_walk_path(self, org: Location, dst: Location, dept: float) -> Path:
+    def straight_walk_path(
+        self,
+        org: Location,
+        dst: Location,
+        dept: float,
+        arrv: float | None = None,
+    ) -> Path:
+        walk_time = calc_distance(org, dst) / self.walking_velocity
+        if arrv is not None:
+            dept = arrv - walk_time
+        else:
+            arrv = dept + walk_time
         return Path(
             trips=[
                 Trip(
                     org=org,
                     dst=dst,
                     dept=dept,
-                    arrv=dept + calc_distance(org, dst) / self.walking_velocity,
+                    arrv=arrv,
                     service="walking",
                 )
             ],
-            walking_time_minutes=calc_distance(org, dst) / self.walking_velocity,
+            walking_time_minutes=walk_time,
         )
 
     async def stops(self) -> list[typing.Mapping[str, str]]:
@@ -168,7 +197,9 @@ class OpenTripPlanner:
             maxTransfers: 1
           ) {
             itineraries {
-              walkDistance 
+                legs {
+                    distance
+                }
             }
           }
         }
@@ -185,20 +216,28 @@ class OpenTripPlanner:
         )
 
         if response["plan"]["itineraries"]:
-            return response["plan"]["itineraries"][0]["walkDistance"]
+            itinerary = response["plan"]["itineraries"][0]
+            # Return the total distance across all itinerary legs.
+            return sum(leg["distance"] for leg in itinerary["legs"])
         else:
             return 0
 
     async def _plan_query(
-        self, modes: list[typing.Mapping], org: Location, dst: Location, dept: float
+        self,
+        modes: list[typing.Mapping],
+        org: Location,
+        dst: Location,
+        dept: float,
+        arrv: float | None = None,
     ):
         query = gql("""
-    query PlanQuery($modes: [TransportMode], $from: InputCoordinates, $to: InputCoordinates, $date: String, $time: String) {
+    query PlanQuery($modes: [TransportMode], $from: InputCoordinates, $to: InputCoordinates, $date: String, $time: String, $arriveBy: Boolean) {
       plan(
         from: $from
         to: $to
         date: $date
         time: $time
+        arriveBy: $arriveBy
         transportModes: $modes
         numItineraries: 3
         maxTransfers: 4
@@ -234,17 +273,26 @@ class OpenTripPlanner:
     }
             """)
 
-        # if a fractional second is given, the OTP raise error because
-        dept_datetime = self.ref_datetime + datetime.timedelta(
-            seconds=math.ceil(dept * 60)
-        )
+        if arrv is not None:
+            # arrive-by: use arrv as the target time, round down to avoid overshooting
+            target_datetime = self.ref_datetime + datetime.timedelta(
+                seconds=math.floor(arrv * 60)
+            )
+            arrive_by = True
+        else:
+            # depart-after: use dept as the departure time, round up to avoid fractional seconds
+            target_datetime = self.ref_datetime + datetime.timedelta(
+                seconds=math.ceil(dept * 60)
+            )
+            arrive_by = False
 
         response = await self.client.execute_async(
             query,
             variable_values={
                 "modes": modes,
-                "date": f"{dept_datetime.date()}",
-                "time": f"{dept_datetime.time()}",
+                "date": f"{target_datetime.date()}",
+                "time": f"{target_datetime.time()}",
+                "arriveBy": arrive_by,
                 "from": {"lat": org.lat, "lon": org.lng},
                 "to": {"lat": dst.lat, "lon": dst.lng},
             },

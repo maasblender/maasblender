@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 from mblib.jschema import response
-from mblib.jschema.events import ReserveEvent, DepartEvent
+from mblib.jschema.events import DepartEvent, ReserveEvent
 
 Message = response.Message
 Peek = response.Peek
