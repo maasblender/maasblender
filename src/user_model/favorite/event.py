@@ -4,7 +4,6 @@ import logging
 from enum import Enum
 
 import simpy
-
 from core import Location, Route
 
 logger = logging.getLogger(__name__)

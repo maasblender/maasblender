@@ -1,0 +1,3 @@
+stop_id,stop_code,stop_name,stop_desc,stop_lat,stop_lon,zone_id,stop_url,location_type,platform_code
+toyama_station,,Toyama Station,,36.7014265,137.210879,toyama_station,,0,
+toyama_court,,Toyama Court,,36.6835921,137.2044729,toyama_court,,0,

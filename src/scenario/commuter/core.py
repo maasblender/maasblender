@@ -25,14 +25,21 @@ class DemandInfo:
 
     org: Location
     dst: Location
-    service: str | None
-    user_type: str | None
+    dept: float | None = None
+    arrv: float | None = None
+    service: str | None = None
+    user_type: str | None = None
 
     @cached_property
     def reverse(self):
         """return path"""
         return DemandInfo(
-            org=self.dst, dst=self.org, service=self.service, user_type=self.user_type
+            org=self.dst,
+            dst=self.org,
+            dept=self.dept,
+            arrv=self.arrv,
+            service=self.service,
+            user_type=self.user_type,
         )
 
 
@@ -50,6 +57,8 @@ class DemandEvent:
                 "userId": self.user_id,
                 "userType": self.info.user_type,
                 "demandId": self.demand_id,
+                "dept": self.info.dept,
+                "arrv": self.info.arrv,
                 "org": {
                     "locationId": info.org.location_id,
                     "lat": info.org.lat,

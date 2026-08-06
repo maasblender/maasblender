@@ -2,17 +2,15 @@
 # SPDX-License-Identifier: Apache-2.0
 from __future__ import annotations
 
-import typing
 from datetime import datetime
 from logging import getLogger
 
-from mblib.jschema.events import Location
-
-from core import TemporaryStop, StopLike
+from core import StopLike, TemporaryStop
 from environment import Environment
 from event import EventQueue, ReserveFailedEvent
+from mblib.jschema.events import Location
 from mobility import CarManager, CarSetting
-from trip import SingleTrip, BlockTrip, Stop, TripLocation
+from trip import BlockTrip, SingleTrip, Stop, TripLocation
 
 logger = getLogger(__name__)
 
@@ -21,15 +19,15 @@ class Simulation:
     env: Environment
     event_queue: EventQueue
     car_manager: CarManager
-    stops: typing.Dict[str, Stop]
-    locations: typing.Dict[str, TripLocation]
+    stops: dict[str, Stop]
+    locations: dict[str, TripLocation]
 
     def __init__(
         self,
         start_time: datetime,
         capacity: int,
-        trips: typing.Dict[str, SingleTrip] = None,
-        blocks: typing.Dict[str, list[SingleTrip]] = None,
+        trips: dict[str, SingleTrip] | None = None,
+        blocks: dict[str, list[SingleTrip]] | None = None,
     ) -> None:
         trips = trips or {}
         blocks = blocks or {}

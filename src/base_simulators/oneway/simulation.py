@@ -1,22 +1,21 @@
 # SPDX-FileCopyrightText: 2022 TOYOTA MOTOR CORPORATION and MaaS Blender Contributors
 # SPDX-License-Identifier: Apache-2.0
 from __future__ import annotations
-import typing
+
+from collections import defaultdict
 from dataclasses import dataclass
 from logging import getLogger
-from collections import defaultdict
 
 import simpy
-
-from location import Station
-from mobility import Scooter, ScooterParameter
 from event import (
+    ArrivedEvent,
+    DepartedEvent,
+    EventQueue,
     ReservedEvent,
     ReserveFailedEvent,
-    DepartedEvent,
-    ArrivedEvent,
-    EventQueue,
 )
+from location import Station
+from mobility import Scooter, ScooterParameter
 from operation.reduce_fluctuations import (
     Manager,
     OperatedStation,
@@ -40,17 +39,17 @@ class Simulation:
         self.env = simpy.Environment()
         self.queue = EventQueue(env=self.env)
         self.operation = Manager(env=self.env)
-        self.stations: typing.Dict[str, Station] = {}
-        self._reservations: typing.Dict[str, Reservation] = {}
+        self.stations: dict[str, Station] = {}
+        self._reservations: dict[str, Reservation] = {}
 
     def setup(
         self,
-        station_information: typing.List[typing.Dict],
-        free_bike_status: typing.List[typing.Dict],
+        station_information: list[dict],
+        free_bike_status: list[dict],
         scooter_params: ScooterParameter,
         operator_params: OperatorParameter,
     ):
-        mobilities: typing.Dict[str, typing.List[Scooter]] = defaultdict(list)
+        mobilities: dict[str, list[Scooter]] = defaultdict(list)
         for bike in free_bike_status:
             mobilities[bike["station_id"]].append(
                 Scooter(

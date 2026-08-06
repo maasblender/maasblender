@@ -5,9 +5,8 @@ import logging
 import typing
 
 import simpy
-
 from core import calc_distance
-from event import EventQueue, DepartedEvent, ArrivedEvent
+from event import ArrivedEvent, DepartedEvent, EventQueue
 from location import Station
 
 logger = logging.getLogger(__name__)

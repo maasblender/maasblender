@@ -7,7 +7,6 @@ import typing
 from logging import getLogger
 
 import simpy
-
 from core import Location, Mobility
 
 logger = getLogger(__name__)
@@ -32,11 +31,11 @@ class Battery:
         self._soc = fuel_percent
         self._last_checked = env.now
         self._standby: typing.Callable[[float], float] = lambda duration: 0.0
-        self._charging: typing.Callable[[float], float] = (
-            lambda duration: params.charging_speed * duration
+        self._charging: typing.Callable[[float], float] = lambda duration: (
+            params.charging_speed * duration
         )
-        self._running: typing.Callable[[float], float] = (
-            lambda duration: params.discharging_speed * duration
+        self._running: typing.Callable[[float], float] = lambda duration: (
+            params.discharging_speed * duration
         )
         self._status = self._standby
 

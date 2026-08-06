@@ -3,7 +3,7 @@
 import typing
 from enum import Enum
 
-from pydantic import BaseModel, RootModel, AnyHttpUrl
+from pydantic import AnyHttpUrl, BaseModel, RootModel
 
 
 class LocationSetting(BaseModel):

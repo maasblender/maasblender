@@ -1,0 +1,41 @@
+version: "3.9"
+
+services:
+
+  broker:
+    build:
+      context: ../../src/simulation_broker/
+    ports:
+      - "3000:80"
+
+  user_model:
+    build:
+      context: ../../src/user_model/simple/
+
+  scenario_historical:
+    build:
+      context: ../../src/scenario/historical/
+
+  scenario_generator:
+    build:
+      context: ../../src/scenario/generator
+
+  scenario_commuter:
+    build:
+      context: ../../src/scenario/commuter
+
+  scheduled:
+    build:
+      context: ../../src/base_simulators/scheduled
+    ports:
+      - "3001:80"
+
+  planner:
+    build:
+      context: ../../src/planner/opentripplanner
+    ports:
+      - "3010:80"
+
+  walking:
+    build:
+      context: ../../src/base_simulators/walking

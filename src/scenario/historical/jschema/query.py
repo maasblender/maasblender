@@ -13,7 +13,8 @@ class HistoricalDemandSetting(BaseModel):
     org: LocationSetting
     dst: LocationSetting
     time: float | None = Field(None, description="Time to reserve mobilities")
-    dept: float = Field(..., description="Time to start move from org to dst")
+    dept: float | None = Field(None, description="Time to start move from org to dst")
+    arrv: float | None = Field(None, description="Time to arrive at dst")
     service: str | None = None
     user_id: str | None = None
     demand_id: str | None = None
@@ -23,9 +24,11 @@ class HistoricalDemandSetting(BaseModel):
     @model_validator(mode="after")
     def check_exist_time(self):
         if self.dept is None and self.arrv is None:
-            raise ValueError("not specified both dept and arrv")
+            raise ValueError("either dept or arrv must be specified")
+        if self.dept is not None and self.arrv is not None:
+            raise ValueError("dept and arrv cannot both be specified")
         if self.time is None:
-            self.time = self.dept
+            self.time = self.dept if self.dept else 0.0
         return self
 
 

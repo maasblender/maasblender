@@ -1,15 +1,13 @@
 # SPDX-FileCopyrightText: 2023 TOYOTA MOTOR CORPORATION and MaaS Blender Contributors
 # SPDX-License-Identifier: Apache-2.0
+import itertools
 import logging
 import typing
-import itertools
-
 from dataclasses import dataclass
 
 import simpy
-
-import jschema.query
-from core import Location, DemandEvent, DemandInfo
+from core import DemandEvent, DemandInfo, Location
+from jschema.query import HistoricalDemandSetting
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +28,7 @@ class HistoricalScenario:
 
     def setup(
         self,
-        settings: typing.Collection[jschema.query.HistoricalDemandSetting],
+        settings: typing.Collection[HistoricalDemandSetting],
         user_id_format: str,
         demand_id_format: str,
     ):
@@ -64,6 +62,7 @@ class HistoricalScenario:
                         setting.dst.locationId, setting.dst.lat, setting.dst.lng
                     ),
                     dept=setting.dept,
+                    arrv=setting.arrv,
                     service=setting.service,
                     demand_id=setting.demand_id,
                     user_type=self._user_types[setting.user_id],

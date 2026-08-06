@@ -1,10 +1,9 @@
 # SPDX-FileCopyrightText: 2022 TOYOTA MOTOR CORPORATION and MaaS Blender Contributors
 # SPDX-License-Identifier: Apache-2.0
-import typing
 import dataclasses
 from datetime import date
 
-from core import Trip, Route, Service, StopTime, Stop, StopTimeWithDateTime, Path
+from core import Path, Route, Service, Stop, StopTime, StopTimeWithDateTime, Trip
 
 
 @dataclasses.dataclass(frozen=True)
@@ -13,14 +12,14 @@ class SingleTrip(Trip):
 
     route: Route
     service: Service
-    stop_times: typing.List[StopTime]
+    stop_times: list[StopTime]
     block_id: str = ""
 
     def __post_init__(self):
         assert len(self.stop_times) >= 2
 
     @property
-    def stops(self) -> typing.List[Stop]:
+    def stops(self) -> list[Stop]:
         return [stop_time.stop for stop_time in self.stop_times]
 
     def is_operation(self, at: date) -> bool:
@@ -33,7 +32,7 @@ class SingleTrip(Trip):
         ]
 
     def start_time(self, at: date):
-        return list(self.stop_times_at(at))[0].arrival
+        return next(iter(self.stop_times_at(at))).arrival
 
     def end_time(self, at: date):
         return list(self.stop_times_at(at))[-1].departure
@@ -57,11 +56,11 @@ class SingleTrip(Trip):
 class BlockTrip(Trip):
     """Sequence of trips which belong to a block"""
 
-    trips: typing.List[SingleTrip]
+    trips: list[SingleTrip]
 
     def __post_init__(self):
         assert len(self.trips) >= 2
-        assert len(set(trip.block_id for trip in self.trips)) <= 1
+        assert len({trip.block_id for trip in self.trips}) <= 1
         assert self.trips[0].block_id != ""
 
         # The following assertion is generally true for most cases,
@@ -71,11 +70,11 @@ class BlockTrip(Trip):
         )
 
     @property
-    def stops(self) -> typing.List[Stop]:
+    def stops(self) -> list[Stop]:
         return [stop_time.stop for trip in self.trips for stop_time in trip.stop_times]
 
     def is_operation(self, at: date) -> bool:
-        return any([trip.service.is_operation(at) for trip in self.trips])
+        return any(trip.service.is_operation(at) for trip in self.trips)
 
     def stop_times_at(self, at: date):
         # Depending on the service configuration, a block trip can be split into multiple trips
@@ -89,7 +88,7 @@ class BlockTrip(Trip):
         ]
 
     def start_time(self, at: date):
-        return list(self.stop_times_at(at))[0].arrival
+        return next(iter(self.stop_times_at(at))).arrival
 
     def end_time(self, at: date):
         return list(self.stop_times_at(at))[-1].departure

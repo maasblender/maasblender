@@ -1,15 +1,16 @@
 # SPDX-FileCopyrightText: 2022 TOYOTA MOTOR CORPORATION and MaaS Blender Contributors
 # SPDX-License-Identifier: Apache-2.0
 import unittest
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from unittest import TestCase
 from unittest.mock import Mock
 
-from core import User, Stop, Group, Trip, Service, StopTime as flex_StopTime, Network
+from core import Group, Network, Service, Stop, Trip, User
+from core import StopTime as flex_StopTime
 from environment import Environment
-from mobility import Car, Route, StopTime, CarManager, CarSetting, Evaluation
+from mobility import Car, CarManager, CarSetting, Evaluation, Route, StopTime
 
-base_datetime = datetime(year=2022, month=1, day=1)
+base_datetime = datetime(year=2022, month=1, day=1, tzinfo=UTC)
 stops = [
     Stop(stop_id="S001", name=..., lat=..., lng=...),
     Stop(stop_id="S002", name=..., lat=..., lng=...),

@@ -5,9 +5,8 @@ import logging
 import typing
 
 import aiohttp
-
-from mblib.io import httputil
 from jschema.query import LocationSetting
+from mblib.io import httputil
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +29,7 @@ class Trip:
 
 @dataclasses.dataclass(frozen=True)
 class Path:
-    trips: typing.List[Trip]
+    trips: list[Trip]
     # walking_time_minutes: float
 
 
@@ -42,7 +41,7 @@ class Planner:
     async def finish(self):
         await self._session.close()
 
-    async def _get(self, method: str, params: typing.Mapping = None):
+    async def _get(self, method: str, params: typing.Mapping | None = None):
         async with self._session.get(
             self._endpoint + method,
             params=params if params else {},
@@ -51,7 +50,10 @@ class Planner:
             return await response.json()
 
     async def _post(
-        self, method: str, data: typing.Mapping = None, params: typing.Mapping = None
+        self,
+        method: str,
+        data: typing.Mapping | None = None,
+        params: typing.Mapping | None = None,
     ):
         async with self._session.post(
             self._endpoint + method,
@@ -64,10 +66,20 @@ class Planner:
     async def setup(self, setting: typing.Mapping):
         await self._post("setup", data=setting)
 
-    async def plan(self, org: LocationSetting, dst: LocationSetting, dept: float):
+    async def plan(
+        self,
+        org: LocationSetting,
+        dst: LocationSetting,
+        dept: float,
+        arrv: float | None = None,
+    ):
+        params = {"dept": dept}
+        if arrv is not None:
+            params["arrv"] = arrv
+
         response = await self._post(
             method="plan",
             data={"org": org.model_dump(), "dst": dst.model_dump()},
-            params={"dept": dept},
+            params=params,
         )
         return response

@@ -1,10 +1,10 @@
 # SPDX-FileCopyrightText: 2023 TOYOTA MOTOR CORPORATION and MaaS Blender Contributors
 # SPDX-License-Identifier: Apache-2.0
-from pydantic import BaseModel
 import typing
 
 from mblib.jschema import response
 from mblib.jschema.events import DemandEvent
+from pydantic import BaseModel
 
 Message = response.Message
 Peek = response.Peek

@@ -4,19 +4,19 @@ import copy
 import json
 import re
 import unittest
+from typing import ClassVar
 
 import pydantic
-from jsonschema.exceptions import ValidationError
-
 from jschema.event import Event
+from jsonschema.exceptions import ValidationError
 from mblib.jschema import events, spec
 from validation import (
-    JsonSchema,
-    SchemaCompatibilityChecker,
     EventValidator,
+    JsonSchema,
     MismatchFutureError,
     MismatchSchemaError,
     MismatchVersionError,
+    SchemaCompatibilityChecker,
 )
 
 
@@ -151,7 +151,7 @@ class SchemaCompatibilityCheckerTestCase(unittest.TestCase):
 
 
 class EventValidatorTestCase(unittest.TestCase):
-    specs = {
+    specs: ClassVar[dict[str, spec.SpecificationResponse]] = {
         "broker": spec.SpecificationResponse.model_validate(
             {
                 "version": "https://tmc.co.jp/maas-blender/v1/base-schema.json",

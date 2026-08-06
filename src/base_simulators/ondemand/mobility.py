@@ -3,26 +3,24 @@
 from __future__ import annotations
 
 import dataclasses
+import functools
+import itertools
 import logging
 import time
 import typing
 from datetime import datetime, timedelta
-import itertools
-import functools
 
 import simpy
-from ortools.constraint_solver import routing_enums_pb2
-from ortools.constraint_solver import pywrapcp
-
-from core import Trip, Stop, Network, User, Mobility
+from core import Mobility, Network, Stop, Trip, User
 from event import EventQueue
+from ortools.constraint_solver import pywrapcp, routing_enums_pb2
 
 logger = logging.getLogger(__name__)
 
 
 @dataclasses.dataclass
 class Schedule:
-    current: typing.Optional[StopTime] = None
+    current: StopTime | None = None
     stop_times: typing.Sequence[StopTime] = dataclasses.field(default_factory=list)
 
     def __bool__(self):
@@ -45,7 +43,7 @@ class Schedule:
             self.stop_times = self.stop_times[1:]
         else:
             self.current = None
-            self.stop_times: typing.List[StopTime] = []
+            self.stop_times: list[StopTime] = []
         return self.current
 
 
@@ -61,8 +59,8 @@ class TimeoutWatchDog:
 
 @dataclasses.dataclass
 class OnOff:
-    on: typing.Optional[User] = None
-    off: typing.Optional[User] = None
+    on: User | None = None
+    off: User | None = None
 
 
 class Car(Mobility):
@@ -89,13 +87,13 @@ class Car(Mobility):
         self.schedule = Schedule()
         self._last_arrival_time = self.env.datetime_now
         self._initial_stop = stop
-        self._stop: typing.Optional[Stop] = stop
+        self._stop: Stop | None = stop
         self._board_time: timedelta = board_time
         self._max_delay_time: timedelta = max_delay_time
-        self._reserved_users: typing.Dict[str, User] = {}
-        self._waiting_users: typing.Dict[str, User] = {}
-        self._passengers: typing.Dict[str, User] = {}
-        self._wait_until_scheduled: typing.Optional[simpy.Process] = None
+        self._reserved_users: dict[str, User] = {}
+        self._waiting_users: dict[str, User] = {}
+        self._passengers: dict[str, User] = {}
+        self._wait_until_scheduled: simpy.Process | None = None
         _, end_window = self.window()
         self.env.process(
             self._move_to_initial_stop(end_window)
@@ -212,7 +210,7 @@ class Car(Mobility):
                 f"illegal current schedule of mobility={self.mobility_id}"
                 f" with users={[e.user_id for e in users]} at {self.env.now=}:"
                 f" {self.schedule.current.stop=} != {self.stop=}"
-                f"\n  car={repr(self)}"
+                f"\n  car={self!r}"
             )
             for user in users:
                 assert user.org == self.stop
@@ -225,7 +223,7 @@ class Car(Mobility):
                 f"capacity over of mobility={self.mobility_id} on stop={self.stop}"
                 f" with users={[e.user_id for e in users]} at {self.env.now=}:"
                 f" len({[e.user_id for e in self.passengers]=}) > {self.capacity=}"
-                f"\n  car={repr(self)}"
+                f"\n  car={self!r}"
             )
 
         self.env.process(self.move(self.schedule.pop().stop))
@@ -259,7 +257,7 @@ class Car(Mobility):
 
         self.env.process(self.arrived())
 
-    def solve_new_route(self, new_user: User) -> typing.Optional[Route]:
+    def solve_new_route(self, new_user: User) -> Route | None:
         node_locations = []
         demands = []
         node_onoff = []
@@ -321,7 +319,7 @@ class Car(Mobility):
             start_time = to.arrival
         else:
             now = self.env.datetime_now
-            start_time = now if now > window_start else window_start
+            start_time = max(window_start, now)
         time_dimension.CumulVar(routing.Start(0)).SetValue(
             self.env.elapsed_secs(start_time)
         )
@@ -491,7 +489,7 @@ class Car(Mobility):
 
         return routes
 
-    def reserve(self, user: User, schedule: typing.List[StopTime]):
+    def reserve(self, user: User, schedule: list[StopTime]):
         # Ensure that the user has not already reserved
         assert user.user_id not in self.users
 
@@ -511,9 +509,9 @@ class Car(Mobility):
         self.schedule.update(schedule)
         self._reserved_users.update({user.user_id: user})
 
-    def window(self) -> typing.Tuple[datetime | None, datetime | None]:
+    def window(self) -> tuple[datetime | None, datetime | None]:
         now = self.env.datetime_now
-        today = datetime(year=now.year, month=now.month, day=now.day)
+        today = now.replace(hour=0, minute=0, second=0, microsecond=0)
         if trip := self.trip(today.date() - timedelta(days=1)):
             # yesterday's after midnight
             start_window = today
@@ -534,8 +532,8 @@ class Car(Mobility):
 
 
 class Route:
-    def __init__(self, stop_times: typing.List[StopTime]):
-        def _normalize(a: typing.List[StopTime], b: StopTime):
+    def __init__(self, stop_times: list[StopTime]):
+        def _normalize(a: list[StopTime], b: StopTime):
             return a[:-1] + [a[-1] + b] if a and a[-1].stop == b.stop else a + [b]
 
         self.stop_times = functools.reduce(_normalize, stop_times, [])
@@ -570,8 +568,8 @@ class StopTime:
     stop: Stop
     arrival: datetime = None
     departure: datetime = None
-    on: typing.List[User] = dataclasses.field(default_factory=list)
-    off: typing.List[User] = dataclasses.field(default_factory=list)
+    on: list[User] = dataclasses.field(default_factory=list)
+    off: list[User] = dataclasses.field(default_factory=list)
 
     def __eq__(self, other):
         if not isinstance(other, StopTime):
@@ -617,10 +615,12 @@ class Evaluation:
                 # wait till start time
                 previous = StopTime(stop=car.stop, departure=start_window)
 
-        for previous, stop_time in zip([previous] + plan.stop_times, plan.stop_times):
-            stop_time.arrival = previous.departure + timedelta(
+        for previous_stop_time, stop_time in zip(
+            [previous] + plan.stop_times, plan.stop_times
+        ):
+            stop_time.arrival = previous_stop_time.departure + timedelta(
                 minutes=self.car.network.duration(
-                    previous.stop.stop_id, stop_time.stop.stop_id
+                    previous_stop_time.stop.stop_id, stop_time.stop.stop_id
                 )
             )
             stop_time.departure = max(
@@ -675,7 +675,7 @@ class CarManager:
         self.max_delay_time: timedelta = timedelta(minutes=max_delay_time)
         self.max_calculation_seconds = max_calculation_seconds
         self.max_calculation_stop_times_length = max_calculation_stop_times_length
-        self.mobilities: typing.Dict[str, Car] = {
+        self.mobilities: dict[str, Car] = {
             setting.mobility_id: Car(
                 network=self.network,
                 queue=self.event_queue,
