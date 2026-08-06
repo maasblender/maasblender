@@ -122,10 +122,8 @@ class GtfsFilesReader:
                         saturday=False,
                         sunday=False,
                     )
-                    
-                self._services[service_id].append_exception(
-                    exception_date, is_added
-                )
+
+                self._services[service_id].append_exception(exception_date, is_added)
 
         with archive.open("stop_times.txt") as f:
             for k, v in GtfsReader(f, self.parse_stop_time):
