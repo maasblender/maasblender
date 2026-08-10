@@ -8,6 +8,7 @@ import httpx
 import csv
 import io
 
+
 def extract_gtfs_period(zip_path: Path) -> tuple[datetime, datetime]:
     """
     Extract the overall validity period of a GTFS feed.
@@ -39,18 +40,15 @@ def extract_gtfs_period(zip_path: Path) -> tuple[datetime, datetime]:
 
             for row in reader:
                 if row.get("start_date") and row.get("end_date"):
-                    start_dates.append(
-                        datetime.strptime(row["start_date"], "%Y%m%d")
-                    )
-                    end_dates.append(
-                        datetime.strptime(row["end_date"], "%Y%m%d")
-                    )
+                    start_dates.append(datetime.strptime(row["start_date"], "%Y%m%d"))
+                    end_dates.append(datetime.strptime(row["end_date"], "%Y%m%d"))
             if start_dates and end_dates:
                 return min(start_dates), max(end_dates)
             else:
                 raise GTFSPeriodException(
                     "calendar.txt does not contain valid start/end dates"
                 )
+
 
 def validate_reference_times(settings_path: Path):
     """
@@ -113,6 +111,7 @@ def validate_reference_times(settings_path: Path):
                 )
                 continue
 
+
 def print_section(message: str):
     """Function to print a console section header."""
     line = "=" * 60
@@ -120,11 +119,12 @@ def print_section(message: str):
     print(message)
     print(line)
 
+
 def main():
     otp_config = Path("otp-config.zip")
     gtfs = Path("gtfs.zip")
     settings = Path("broker_setup.json")
-    
+
     # GTFS Validity Check
     validate_reference_times(settings)
 
