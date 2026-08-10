@@ -1,12 +1,17 @@
+import csv
+import io
 import json
 import sys
 import time
 import zipfile
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
+
 import httpx
-import csv
-import io
+
+
+class GTFSPeriodException(Exception):
+    """Exception raised when the GTFS validity period cannot be determined."""
 
 
 def extract_gtfs_period(zip_path: Path) -> tuple[datetime, datetime]:
