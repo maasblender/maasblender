@@ -83,6 +83,80 @@ class SingleTripTestCase(unittest.TestCase):
         )
         self.simulation.start()
 
+    def test_overnight_trip_should_skip_past_stops_when_simulation_starts_after_midnight(
+        self,
+    ):
+        start_date = date(year=2024, month=4, day=1)
+        sim = Simulation(
+            start_time=datetime.combine(start_date, time()),
+            capacity=20,
+            trips={
+                "mobility": SingleTrip(
+                    route=...,
+                    service=Service(
+                        start_date=start_date - timedelta(days=1),
+                        end_date=start_date + timedelta(days=2),
+                        monday=True,
+                        tuesday=True,
+                        wednesday=True,
+                        thursday=True,
+                        friday=True,
+                        saturday=True,
+                        sunday=True,
+                    ),
+                    stop_times=[
+                        StopTime(
+                            stop=gtfs_stations["3_1"],
+                            departure=timedelta(hours=23, minutes=55),
+                        ),
+                        StopTime(
+                            stop=gtfs_stations["7_1"],
+                            arrival=timedelta(hours=23, minutes=59),
+                            departure=timedelta(days=1, hours=0, minutes=5),
+                        ),
+                        StopTime(
+                            stop=gtfs_stations["11_1"],
+                            arrival=timedelta(days=1, hours=0, minutes=15),
+                            departure=timedelta(days=1, hours=0, minutes=15),
+                        ),
+                        StopTime(
+                            stop=gtfs_stations["15_1"],
+                            arrival=timedelta(days=1, hours=0, minutes=25),
+                            departure=timedelta(days=1, hours=0, minutes=25),
+                        ),
+                    ],
+                )
+            },
+        )
+        sim.start()
+
+        triggered_events = run(sim, until=1480)
+
+        expected_operation_events = [
+            (EventType.ARRIVED, 15.0, "11_1"),
+            (EventType.DEPARTED, 15.0, "11_1"),
+            (EventType.ARRIVED, 25.0, "15_1"),
+            (EventType.DEPARTED, 25.0, "15_1"),
+            (EventType.ARRIVED, 1435.0, "3_1"),
+            (EventType.DEPARTED, 1435.0, "3_1"),
+            (EventType.ARRIVED, 1439.0, "7_1"),
+            (EventType.DEPARTED, 1445.0, "7_1"),
+            (EventType.ARRIVED, 1455.0, "11_1"),
+            (EventType.DEPARTED, 1455.0, "11_1"),
+            (EventType.ARRIVED, 1465.0, "15_1"),
+            (EventType.DEPARTED, 1465.0, "15_1"),
+        ]
+        actual_operation_events = [
+            (
+                event["eventType"],
+                event["time"],
+                event["details"]["location"]["locationId"],
+            )
+            for event in triggered_events
+            if event["eventType"] in (EventType.ARRIVED, EventType.DEPARTED)
+        ]
+        self.assertEqual(expected_operation_events, actual_operation_events)
+
     def test_operation(self):
         triggered_events = run(self.simulation, until=549)
         expected_events = [

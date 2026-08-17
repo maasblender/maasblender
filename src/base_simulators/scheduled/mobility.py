@@ -115,23 +115,28 @@ class Car(Mobility):
 
     def run(self):
         while True:
-            if trip := self.trip():
-                # 時刻表に従って順番に停車駅に移動する。
-                for plan in trip.stop_times_at(self.operation_date):
-                    yield self.env.timeout_until(plan.arrival)
-                    self._arrive(plan.stop)
-                    yield self.env.timeout_until(plan.departure)
-                    self._departure()
+            trip = self.trip()
 
-                assert not self.passengers, f"remain users on end: {self}"
-
-            else:
-                # If there is no operation for the day, wait until the next day.
+            # If there is no operation for the day, wait until the next day.
+            if trip is None:
                 yield self.env.timeout_until(
                     datetime.combine(
                         self.current_datetime.date() + timedelta(days=1), time()
                     )
                 )
+                continue
+
+            # Move to the next stop in order according to the gtfs timetable,
+            for plan in trip.stop_times_at(self.operation_date):
+                # Ignore already-completed stops and only advance to future service points.
+                if plan.arrival < self.current_datetime:
+                    continue
+                yield self.env.timeout_until(plan.arrival)
+                self._arrive(plan.stop)
+                yield self.env.timeout_until(plan.departure)
+                self._departure()
+
+            assert not self.passengers, f"remain users on end: {self}"
 
     def __str__(self):
         data = {
