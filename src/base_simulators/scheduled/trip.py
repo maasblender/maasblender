@@ -1,6 +1,7 @@
 # SPDX-FileCopyrightText: 2022 TOYOTA MOTOR CORPORATION and MaaS Blender Contributors
 # SPDX-License-Identifier: Apache-2.0
 import dataclasses
+import itertools
 from datetime import date
 
 from core import Path, Route, Service, Stop, StopTime, StopTimeWithDateTime, Trip
@@ -25,9 +26,9 @@ class SingleTrip(Trip):
     def is_operation(self, at: date) -> bool:
         return self.service.is_operation(at)
 
-    def stop_times_at(self, at_date: date):
+    def stop_times_at(self, at: date):
         return [
-            StopTimeWithDateTime(stop_time=stop_time, reference_date=at_date)
+            StopTimeWithDateTime(stop_time=stop_time, reference_date=at)
             for stop_time in self.stop_times
         ]
 
@@ -60,10 +61,11 @@ class BlockTrip(Trip):
 
     def __post_init__(self):
         assert len(self.trips) >= 2
-        assert len({trip.block_id for trip in self.trips}) <= 1
+        assert len({trip.block_id for trip in self.trips}) == 1
         assert self.trips[0].block_id != ""
 
         # The following assertion is generally true for most cases,
+        # Trips in a block are expected to be ordered by first stop departure.
         assert (
             self.trips[0].stop_times[0].departure
             < self.trips[1].stop_times[0].departure
@@ -76,15 +78,67 @@ class BlockTrip(Trip):
     def is_operation(self, at: date) -> bool:
         return any(trip.service.is_operation(at) for trip in self.trips)
 
+    def _normalized_stop_times(self, at: date) -> list[StopTime]:
+        operating_trips = [trip for trip in self.trips if trip.service.is_operation(at)]
+        if not operating_trips:
+            return []
+
+        normalized: list[StopTime] = [
+            StopTime(
+                stop=stop_time.stop,
+                arrival=stop_time.arrival,
+                departure=stop_time.departure,
+            )
+            for stop_time in operating_trips[0].stop_times
+        ]
+
+        for previous_trip, current_trip in itertools.pairwise(operating_trips):
+            previous_last = normalized[-1]
+            current_first = current_trip.stop_times[0]
+            assert (
+                previous_trip.stop_times[0].departure
+                < current_trip.stop_times[0].departure
+            )
+            if previous_last.stop == current_first.stop:
+                normalized[-1] = StopTime(
+                    stop=previous_last.stop,
+                    arrival=previous_last.arrival,
+                    departure=current_first.departure,
+                )
+                next_trip_stop_times = current_trip.stop_times[1:]
+            else:
+                normalized[-1] = StopTime(
+                    stop=previous_last.stop,
+                    arrival=previous_last.arrival,
+                    departure=previous_last.arrival,
+                )
+                normalized.append(
+                    StopTime(
+                        stop=current_first.stop,
+                        arrival=current_first.departure,
+                        departure=current_first.departure,
+                    )
+                )
+                next_trip_stop_times = current_trip.stop_times[1:]
+
+            normalized.extend(
+                StopTime(
+                    stop=stop_time.stop,
+                    arrival=stop_time.arrival,
+                    departure=stop_time.departure,
+                )
+                for stop_time in next_trip_stop_times
+            )
+
+        return normalized
+
     def stop_times_at(self, at: date):
         # Depending on the service configuration, a block trip can be split into multiple trips
         # instead of being treated as a single block trip depending on the day of the week,
         # but this will not be considered for now.
         return [
             StopTimeWithDateTime(stop_time=stop_time, reference_date=at)
-            for trip in self.trips
-            if trip.service.is_operation(at)
-            for stop_time in trip.stop_times
+            for stop_time in self._normalized_stop_times(at)
         ]
 
     def start_time(self, at: date):

@@ -484,5 +484,144 @@ class BlockTripTestCase(unittest.TestCase):
         self.assertEqual(expected_events, triggered_events)
 
 
+class BlockTripBoundaryTimeTestCase(unittest.TestCase):
+    def test_when_boundary_stops_have_arrival_and_departure(self):
+        reference_date = date(year=2024, month=4, day=1)
+        service = Service(
+            start_date=reference_date,
+            end_date=reference_date,
+            monday=True,
+        )
+        simulation = Simulation(
+            start_time=datetime.combine(reference_date, time()),
+            capacity=20,
+            trips={
+                "mobility": BlockTrip(
+                    trips=[
+                        SingleTrip(
+                            route=...,
+                            service=service,
+                            stop_times=[
+                                StopTime(
+                                    stop=gtfs_stations["3_1"],
+                                    departure=timedelta(minutes=543),
+                                ),
+                                StopTime(
+                                    stop=gtfs_stations["7_1"],
+                                    arrival=timedelta(minutes=548),
+                                    departure=timedelta(minutes=560),
+                                ),
+                            ],
+                            block_id="a",
+                        ),
+                        SingleTrip(
+                            route=...,
+                            service=service,
+                            stop_times=[
+                                StopTime(
+                                    stop=gtfs_stations["7_1"],
+                                    arrival=timedelta(minutes=555),
+                                    departure=timedelta(minutes=566),
+                                ),
+                                StopTime(
+                                    stop=gtfs_stations["15_1"],
+                                    arrival=timedelta(minutes=574),
+                                    departure=timedelta(minutes=580),
+                                ),
+                            ],
+                            block_id="a",
+                        ),
+                    ]
+                )
+            },
+        )
+        simulation.start()
+
+        triggered_events = run(simulation, until=581)
+        operation_events = [
+            event
+            for event in triggered_events
+            if event["eventType"] in (EventType.ARRIVED, EventType.DEPARTED)
+        ]
+
+        self.assertEqual(6, len(operation_events))
+        self.assertEqual(574.0, operation_events[-2]["time"])
+        self.assertEqual(580.0, operation_events[-1]["time"])
+
+    def test_merge_boundaries_across_three_trips(self):
+        reference_date = date(year=2024, month=4, day=1)
+        service = Service(
+            start_date=reference_date,
+            end_date=reference_date,
+            monday=True,
+        )
+        block_trip = BlockTrip(
+            trips=[
+                SingleTrip(
+                    route=...,
+                    service=service,
+                    stop_times=[
+                        StopTime(
+                            stop=gtfs_stations["3_1"], departure=timedelta(minutes=543)
+                        ),
+                        StopTime(
+                            stop=gtfs_stations["7_1"],
+                            arrival=timedelta(minutes=548),
+                            departure=timedelta(minutes=560),
+                        ),
+                    ],
+                    block_id="a",
+                ),
+                SingleTrip(
+                    route=...,
+                    service=service,
+                    stop_times=[
+                        StopTime(
+                            stop=gtfs_stations["7_1"],
+                            arrival=timedelta(minutes=555),
+                            departure=timedelta(minutes=566),
+                        ),
+                        StopTime(
+                            stop=gtfs_stations["11_1"],
+                            arrival=timedelta(minutes=574),
+                            departure=timedelta(minutes=580),
+                        ),
+                    ],
+                    block_id="a",
+                ),
+                SingleTrip(
+                    route=...,
+                    service=service,
+                    stop_times=[
+                        StopTime(
+                            stop=gtfs_stations["11_1"],
+                            arrival=timedelta(minutes=578),
+                            departure=timedelta(minutes=585),
+                        ),
+                        StopTime(
+                            stop=gtfs_stations["15_1"],
+                            arrival=timedelta(minutes=590),
+                            departure=timedelta(minutes=595),
+                        ),
+                    ],
+                    block_id="a",
+                ),
+            ]
+        )
+
+        stop_times = [
+            each.stop_time for each in block_trip.stop_times_at(reference_date)
+        ]
+        self.assertEqual(4, len(stop_times))
+        self.assertEqual(timedelta(minutes=543), stop_times[0].arrival)
+        self.assertEqual(timedelta(minutes=543), stop_times[0].departure)
+        self.assertEqual(timedelta(minutes=548), stop_times[1].arrival)
+        self.assertEqual(timedelta(minutes=566), stop_times[1].departure)
+        self.assertEqual(timedelta(minutes=574), stop_times[2].arrival)
+        self.assertEqual(timedelta(minutes=585), stop_times[2].departure)
+        self.assertEqual(timedelta(minutes=590), stop_times[3].arrival)
+        self.assertEqual(timedelta(minutes=595), stop_times[3].departure)
+
+
 if __name__ == "__main__":
     unittest.main()
