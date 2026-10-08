@@ -45,7 +45,7 @@ def get_location(stop_id: str) -> events.Location:
     return events.Location(locationId=stop.stop_id, lat=stop.lat, lng=stop.lng)
 
 
-class SingleTripTestCase(unittest.TestCase):
+class SingleTripTestCase(unittest.IsolatedAsyncioTestCase):
     def setUp(self) -> None:
         self.stops = gtfs_stations
         self.mobility_id = "mobility"
@@ -151,7 +151,7 @@ class SingleTripTestCase(unittest.TestCase):
         ]
         self.assertEqual(expected_events, triggered_events)
 
-    def test_a_user_flow(self):
+    async def test_a_user_flow(self):
         user = {
             "user_id": "U_001",
             "demand_id": "D_0001",
@@ -162,7 +162,7 @@ class SingleTripTestCase(unittest.TestCase):
 
         run(self.simulation, until=user["dept"])
 
-        self.simulation.reserve_user(
+        await self.simulation.reserve_user(
             user_id=user["user_id"],
             demand_id=user["demand_id"],
             org=get_location(user["org"]),
@@ -359,7 +359,7 @@ class MidnightSingleTripTestCase(unittest.TestCase):
         self.assertEqual(expected_events, triggered_events)
 
 
-class BlockTripTestCase(unittest.TestCase):
+class BlockTripTestCase(unittest.IsolatedAsyncioTestCase):
     def setUp(self) -> None:
         self.reference_date = date(year=2024, month=4, day=1)
         self.stops = gtfs_stations
@@ -432,7 +432,9 @@ class BlockTripTestCase(unittest.TestCase):
         )
         self.simulation.start()
 
-    def test_cannot_reserve_the_second_trip_only_the_first_trip_is_operating(self):
+    async def test_cannot_reserve_the_second_trip_only_the_first_trip_is_operating(
+        self,
+    ):
         user = {
             "user_id": "U_001",
             "demand_id": "D_0001",
@@ -442,7 +444,7 @@ class BlockTripTestCase(unittest.TestCase):
         }
         run(self.simulation, until=user["dept"])
 
-        self.simulation.reserve_user(
+        await self.simulation.reserve_user(
             user_id=user["user_id"],
             demand_id=user["demand_id"],
             org=get_location(user["org"]),
@@ -464,7 +466,7 @@ class BlockTripTestCase(unittest.TestCase):
         ]
         self.assertEqual(expected_events, triggered_events)
 
-    def test_can_reserve_the_first_trip_only_the_first_trip_is_operating(self):
+    async def test_can_reserve_the_first_trip_only_the_first_trip_is_operating(self):
         user = {
             "user_id": "U_001",
             "demand_id": "D_0001",
@@ -474,7 +476,7 @@ class BlockTripTestCase(unittest.TestCase):
         }
         run(self.simulation, until=user["dept"])
 
-        self.simulation.reserve_user(
+        await self.simulation.reserve_user(
             user_id=user["user_id"],
             demand_id=user["demand_id"],
             org=get_location(user["org"]),
@@ -513,7 +515,7 @@ class BlockTripTestCase(unittest.TestCase):
         ]
         self.assertEqual(expected_events, triggered_events)
 
-    def test_a_user_flow_both_trips_are_in_operation(self):
+    async def test_a_user_flow_both_trips_are_in_operation(self):
         thursday = 1440 * 3
         user = {
             "user_id": "U_001",
@@ -524,7 +526,7 @@ class BlockTripTestCase(unittest.TestCase):
         }
         run(self.simulation, until=user["dept"])
 
-        self.simulation.reserve_user(
+        await self.simulation.reserve_user(
             user_id=user["user_id"],
             demand_id=user["demand_id"],
             org=get_location(user["org"]),

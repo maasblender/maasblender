@@ -309,6 +309,7 @@ name = "maasblender-routedeviation"
 version = "0.0.0"
 source = { virtual = "." }
 dependencies = [
+    { name = "aiohttp" },
     { name = "fastapi" },
     { name = "mblib" },
     { name = "pydantic" },
@@ -320,6 +321,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
+    { name = "aiohttp", specifier = "~=3.13.5" },
     { name = "fastapi", specifier = "~=0.103.2" },
     { name = "mblib", directory = "../../../libs/mblib" },
     { name = "pydantic", specifier = "~=2.4.2" },

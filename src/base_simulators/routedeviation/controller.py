@@ -13,6 +13,7 @@ from jschema import query, response
 from mblib.io import httputil
 from mblib.io.log import init_logger
 from mblib.jschema import events, spec
+from routing import EqualIntervalRouter, RoadDistanceRouter
 from simulation import Simulation
 
 logger = logging.getLogger(__name__)
@@ -88,6 +89,12 @@ async def setup(settings: query.Setup):
         capacity=settings.mobility.capacity,
         trips=gtfs_files.trips,
         blocks=gtfs_files.blocks,
+        router=(
+            RoadDistanceRouter(str(settings.planner.endpoint), settings.mobility.speed)
+            if settings.route_calculation_method
+            == query.RouteCalculationMethod.BRUTE_FORCE
+            else EqualIntervalRouter()
+        ),
     )
 
     return {"message": "successfully configured."}
@@ -111,14 +118,14 @@ def step():
 
 
 @app.post("/triggered")
-def triggered(event: query.TriggeredEvent | events.Event):
+async def triggered(event: query.TriggeredEvent | events.Event):
     # expect nothing to happen. just let time forward.
     if sim.env.now < event.time:
         sim.env.run(until=event.time)
 
     match event:
         case query.ReserveEvent():
-            sim.reserve_user(
+            await sim.reserve_user(
                 user_id=event.details.userId,
                 demand_id=event.details.demandId,
                 org=event.details.org,
@@ -130,8 +137,8 @@ def triggered(event: query.TriggeredEvent | events.Event):
 
 
 @app.get("/reservable", response_model=response.ReservableStatus)
-def reservable(org: str, dst: str):
-    return {"reservable": sim.reservable(org, dst)}
+async def reservable(org: str, dst: str):
+    return {"reservable": await sim.reservable(org, dst)}
 
 
 @app.post("/finish", response_model=response.Message)

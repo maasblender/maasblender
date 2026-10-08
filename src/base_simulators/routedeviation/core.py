@@ -236,8 +236,8 @@ class Trip:
         raise NotImplementedError()
 
     def iter_stop_times_at(
-        self, at_date: date, users: dict[str, User]
-    ) -> typing.Iterator[AbstractStopTimeWithDateTime]:
+        self, at_date: date
+    ) -> typing.Iterator[StopTimeWithDateTime | TripLocation]:
         raise NotImplementedError()
 
     def start_time(self, at: date) -> datetime:

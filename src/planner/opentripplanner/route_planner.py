@@ -83,15 +83,8 @@ class OpenTripPlanner:
             return False
 
     async def meters_for_all_stops_combinations(
-        self, stops: list[str], base: datetime.datetime
+        self, stops: list[Location], base: datetime.datetime
     ):
-        stops_org = stops
-        stop_id_map = {
-            id_from_gtfs_id(stop["gtfsId"]): stop["gtfsId"]
-            for stop in await self.stops()
-        }
-        stops = [stop_id_map[stop] for stop in stops]
-
         matrix: list[list[float]] = []
         async with self.client as session:
             for stop_a in stops:
@@ -108,7 +101,7 @@ class OpenTripPlanner:
                     ]
                 )
                 matrix.append(list(vals))
-        return DistanceMatrix(stops=stops_org, matrix=matrix)
+        return DistanceMatrix(stops=[stop.id_ for stop in stops], matrix=matrix)
 
     async def plan(
         self,
@@ -184,12 +177,14 @@ class OpenTripPlanner:
         response = await self.client.execute_async(query)
         return response["stops"]
 
-    async def distance(self, session, org: str, dst: str, date: str, time: str) -> int:
+    async def distance(
+        self, session, org: Location, dst: Location, date: str, time: str
+    ) -> int:
         query = gql("""
-        query PlanQuery($from: String, $to: String, $date: String, $time: String) {
+        query PlanQuery($from: InputCoordinates, $to: InputCoordinates, $date: String, $time: String) {
           plan(
-            fromPlace: $from
-            toPlace: $to
+            from: $from
+            to: $to
             date: $date
             time: $time
             transportModes: [{ mode: CAR }]
@@ -210,8 +205,8 @@ class OpenTripPlanner:
             variable_values={
                 "date": date,
                 "time": time,
-                "from": org,
-                "to": dst,
+                "from": {"lat": org.lat, "lon": org.lng},
+                "to": {"lat": dst.lat, "lon": dst.lng},
             },
         )
 
@@ -220,7 +215,7 @@ class OpenTripPlanner:
             # Return the total distance across all itinerary legs.
             return sum(leg["distance"] for leg in itinerary["legs"])
         else:
-            return 0
+            return -1
 
     async def _plan_query(
         self,
